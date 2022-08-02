@@ -163,14 +163,14 @@ print_debug()
 	# shellcheck disable=SC2145
 	echo "DEBUG: $0 $@";
 	
-	echo -e "\tip: ${_arg_name}";
-	echo -e "\tuser: ${_arg_ip}";
-	echo -e "\t: ${_arg_user}";
-	echo -e "\tkey: ${_arg_password | sed 's/-/_/g'}";
-	echo -e "\tauth: ${_arg_key | sed 's/-/_/g'}";
-	echo -e "\tport: ${_arg_auth | sed 's/-/_/g'}";
-	echo -e "\t: ${_arg_port | sed 's/-/_/g'}";
-	echo -e "\t: ${_arg_force | sed 's/-/_/g'}";
+	echo -e "\tname: ${_arg_name}";
+	echo -e "\tip: ${_arg_ip}";
+	echo -e "\tuser: ${_arg_user}";
+	echo -e "\tpassword: ${_arg_password | sed 's/-/_/g'}";
+	echo -e "\tkey: ${_arg_key | sed 's/-/_/g'}";
+	echo -e "\tauth: ${_arg_auth | sed 's/-/_/g'}";
+	echo -e "\tport: ${_arg_port | sed 's/-/_/g'}";
+	echo -e "\tforce: ${_arg_force | sed 's/-/_/g'}";
 
 }
 

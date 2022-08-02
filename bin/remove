@@ -93,7 +93,7 @@ print_debug()
 	# shellcheck disable=SC2145
 	echo "DEBUG: $0 $@";
 	
-	echo -e "\t: ${_arg_name}";
+	echo -e "\tname: ${_arg_name}";
 
 }
 

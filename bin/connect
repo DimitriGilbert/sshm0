@@ -126,9 +126,9 @@ print_debug()
 	# shellcheck disable=SC2145
 	echo "DEBUG: $0 $@";
 	
-	echo -e "\t: ${_arg_name}";
-	echo -e "\texec-before: ${_arg_cd | sed 's/-/_/g'}";
-	echo -e "\t: ${_arg_exec-before | sed 's/-/_/g'}";
+	echo -e "\tname: ${_arg_name}";
+	echo -e "\tcd: ${_arg_cd | sed 's/-/_/g'}";
+	echo -e "\texec-before: ${_arg_exec-before | sed 's/-/_/g'}";
 	echo -e "\tleftovers: ${_arg_leftovers[*]}";
 
 }
