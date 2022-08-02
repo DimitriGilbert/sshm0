@@ -1,0 +1,204 @@
+#!/bin/bash
+
+# @parseArger-begin
+# @parseArger-help "add a server" --option "help" --short-option "h"
+# @parseArger-source $SSHM0_ROOT_DIR/bin/utils
+source "$SSHM0_ROOT_DIR/bin/utils";
+# @parseArger-declarations
+# @parseArger pos name "server name"
+# @parseArger pos ip "ip address"
+# @parseArger pos user "username"
+# @parseArger opt password "user password for the server" --short p
+# @parseArger opt key "ssh private key" --short i
+# @parseArger opt auth "authentication type" --one-of "" --one-of "key" --one-of "password"
+# @parseArger opt port "ssh port" --default-value "22"
+# @parseArger flag force "force overwrite if server exists" --short f
+# @parseArger-declarations-end
+
+# @parseArger-parsing
+die()
+{
+	local _ret="${2:-1}"
+	test "${_PRINT_HELP:-no}" = yes && print_help >&2
+	echo "$1" >&2
+	exit "${_ret}"
+}
+
+
+begins_with_short_option()
+{
+	local first_option all_short_options=''
+	first_option="${1:0:1}"
+	test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
+}
+
+# POSITIONALS ARGUMENTS
+_positionals=();
+_arg_name="";
+_arg_ip="";
+_arg_user="";
+# OPTIONALS ARGUMENTS
+_arg_password=
+_arg_key=
+_arg_auth=
+_one_of_arg_auth=("" "key" "password" );
+_arg_port="22"
+# FLAGS
+_arg_force="off"
+
+
+print_help()
+{
+	echo -e "add a server:"
+	echo -e "	name: server name"
+	echo -e "	ip: ip address"
+	echo -e "	user: username"
+	echo -e "	-p, --password <password>: user password for the server"
+	echo -e "	-i, --key <key>: ssh private key"
+	echo -e "	--auth <auth>: authentication type [one of '' 'key' 'password']"
+	echo -e "	--port <port>: ssh port [default: ' 22 ']"
+	echo -e "	-f|--force|--no-force: force overwrite if server exists"
+	echo -e "Usage :
+	$0 <ip> <user> <> [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--[no-]force]"
+}
+
+parse_commandline()
+{
+	_positionals_count=0
+	while test $# -gt 0
+	do
+		_key="$1"
+		case "$_key" in
+			-p|--password)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_password="$2"
+				shift
+				;;
+			--password=*)
+				_arg_password="${_key##--password=}"
+				;;
+			-p*)
+				_arg_password="${_key##-p}"
+				;;
+			
+			-i|--key)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_key="$2"
+				shift
+				;;
+			--key=*)
+				_arg_key="${_key##--key=}"
+				;;
+			-i*)
+				_arg_key="${_key##-i}"
+				;;
+			
+			--auth)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_auth="$2"
+				if [[ "${#_one_of_arg_auth[@]}" -gt 0 ]];then [[ "${_one_of_arg_auth[*]}" =~ (^|[[:space:]])"$_arg_auth"($|[[:space:]]) ]] || die "auth must be one of:  key password";fi
+				shift
+				;;
+			--auth=*)
+				_arg_auth="${_key##--auth=}"
+				if [[ "${#_one_of_arg_auth[@]}" -gt 0 ]];then [[ "${_one_of_arg_auth[*]}" =~ (^|[[:space:]])"$_arg_auth"($|[[:space:]]) ]] || die "auth must be one of:  key password";fi
+				;;
+			
+			--port)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_port="$2"
+				shift
+				;;
+			--port=*)
+				_arg_port="${_key##--port=}"
+				;;
+			
+			-f|--no-force|--force)
+				_arg_force="on"
+				test "${1:0:5}" = "--no-" && _arg_force="off"
+				;;
+			-h|--help)
+				print_help;
+				exit 0;
+				;;
+			-h*)
+				print_help;
+				exit 0;
+				;;
+			*)
+				_last_positional="$1"
+				_positionals+=("$_last_positional")
+				_positionals_count=$((_positionals_count + 1))
+				;;
+		esac
+		shift
+	done
+}
+
+
+handle_passed_args_count()
+{
+	local _required_args_string="name ip user"
+	test "${_positionals_count}" -le 3 || _PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect at most 3 (namely: $_required_args_string), but got ${_positionals_count} (the last one was: '${_last_positional}')." 1
+	test "${_positionals_count}" -ge 3 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 3 (namely: $_required_args_string), but got only ${_positionals_count}." 1
+}
+
+
+assign_positional_args()
+{
+	local _positional_name _shift_for=$1;
+	_positional_names="_arg_name _arg_ip _arg_user ";
+	shift "$_shift_for"
+	for _positional_name in ${_positional_names};do
+		test $# -gt 0 || break;
+		eval "if [ \"\$_one_of${_positional_name}\" != \"\" ];then [[ \"\${_one_of${_positional_name}[*]}\" =~ \"\${1}\" ]];fi" || die "${_positional_name} must be one of: $(eval "echo \"\${_one_of${_positional_name}[*]}\"")" 1
+		eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an Argbash bug." 1;
+		shift;
+	done
+}
+
+print_debug()
+{
+	print_help
+	# shellcheck disable=SC2145
+	echo "DEBUG: $0 $@";
+	
+	echo -e "\tip: ${_arg_name}";
+	echo -e "\tuser: ${_arg_ip}";
+	echo -e "\t: ${_arg_user}";
+	echo -e "\tkey: ${_arg_password | sed 's/-/_/g'}";
+	echo -e "\tauth: ${_arg_key | sed 's/-/_/g'}";
+	echo -e "\tport: ${_arg_auth | sed 's/-/_/g'}";
+	echo -e "\t: ${_arg_port | sed 's/-/_/g'}";
+	echo -e "\t: ${_arg_force | sed 's/-/_/g'}";
+
+}
+
+parse_commandline "$@"
+handle_passed_args_count
+assign_positional_args 1 "${_positionals[@]}"
+
+# @parseArger-parsing-end
+# print_debug "$@"
+# @parseArger-end
+
+dowrite=0;
+if [ -f "$(sshm0_server_config_path "$_arg_name")" ]; then
+	dowrite=1;
+fi
+if [[ "${_arg_force}" == "on" ]];then
+	dowrite=0;
+fi
+
+if [ "$dowrite" -eq 0 ]; then
+	echo "sshm0_server_ip=$_arg_ip
+sshm0_server_user=$_arg_user
+sshm0_server_port=$_arg_port
+sshm0_server_auth=$_arg_auth
+sshm0_server_password=$_arg_password
+sshm0_server_key=$_arg_key" > "$(sshm0_server_config_path "$_arg_name")"
+else
+	echo "$_arg_name already exists, use --force to overwrite"
+fi
+
+

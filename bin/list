@@ -1,0 +1,5 @@
+#!/bin/bash
+
+ls "$SSHM0_CONFIG_DIR/servers" | while read -r server; do
+  echo "$server";
+done

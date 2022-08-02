@@ -1,0 +1,44 @@
+#!/bin/bash
+
+sshm0_install() {
+  if [ ! -d "$SSHM0_CONFIG_DIR/servers" ]; then
+    mkdir -p "$SSHM0_CONFIG_DIR/servers";
+  fi
+  if [ ! -f "$SSHM0_CONFIG_DIR/config" ]; then
+    cp "$SSHM0_ROOT_DIR/config.dist" "$SSHM0_CONFIG_DIR/config";
+  fi
+}
+
+sshm0_load_config() {
+  if [ ! -d "$SSHM0_CONFIG_DIR" ]; then
+    sshm0_install;
+  fi
+  set -a;
+  # shellcheck source=../config.dist
+  source "$SSHM0_CONFIG_DIR/config";
+  set +a;
+}
+
+sshm0_server_config_path() {
+  echo "$SSHM0_CONFIG_DIR/servers/$1";
+}
+
+sshm0_server_exists() {
+  if [ ! -f "$(sshm0_server_config_path "$1")" ]; then
+    return 1;
+  else
+    return 0;
+  fi
+}
+
+sshm0_load_server() {
+  if sshm0_server_exists "$1"; then
+    set -a;
+    # shellcheck source=../server.dist
+    source "$(sshm0_server_config_path "$1")";
+    set +a;
+    return 0;
+  else
+    return 1;
+  fi
+}
