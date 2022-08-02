@@ -196,7 +196,9 @@ sshm0_server_user=$_arg_user
 sshm0_server_port=$_arg_port
 sshm0_server_auth=$_arg_auth
 sshm0_server_password=$_arg_password
-sshm0_server_key=$_arg_key" > "$(sshm0_server_config_path "$_arg_name")"
+sshm0_server_key=$_arg_key
+sshm0_server_cd=
+sshm0_server_exec_before=()" > "$(sshm0_server_config_path "$_arg_name")"
 else
 	echo "$_arg_name already exists, use --force to overwrite"
 fi

@@ -53,5 +53,5 @@ sshm0 edit <name> --user "newUser" --password "My new password"
 ### connect to a server
 
 ```bash
-sshm0 connect <name>
+sshm0 connect <name> [--cd "directory to cd on connect" ] [--exec-before "command to exec before" [--exec-before "..."]] [command to execute]
 ```

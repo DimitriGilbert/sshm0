@@ -2,8 +2,13 @@
 
 # @parseArger-begin
 # @parseArger-help "connect to a server" --option "help" --short-option "h"
+# @parseArger-source $SSHM0_ROOT_DIR/bin/utils
+source "$SSHM0_ROOT_DIR/bin/utils";
+# @parseArger-leftovers leftovers
 # @parseArger-declarations
 # @parseArger pos name "server name"
+# @parseArger opt cd "cd to directory"
+# @parseArger opt exec-before "commands to execute before the shell" --repeat
 # @parseArger-declarations-end
 
 # @parseArger-parsing
@@ -27,15 +32,21 @@ begins_with_short_option()
 _positionals=();
 _arg_name="";
 # OPTIONALS ARGUMENTS
+_arg_cd=
+_arg_exec_before=()
 # FLAGS
+# LEFTOVERS
+_arg_leftovers=()
 
 
 print_help()
 {
 	echo -e "connect to a server:"
 	echo -e "	name: server name"
+	echo -e "	--cd <cd>: cd to directory"
+	echo -e "	--exec-before <exec-before>: commands to execute before the shell, repeatable"
 	echo -e "Usage :
-	$0 <>"
+	$0 <> [--cd <value>] [--exec-before <value>]"
 }
 
 parse_commandline()
@@ -45,6 +56,24 @@ parse_commandline()
 	do
 		_key="$1"
 		case "$_key" in
+			--cd)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_cd="$2"
+				shift
+				;;
+			--cd=*)
+				_arg_cd="${_key##--cd=}"
+				;;
+			
+			--exec-before)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_exec_before+=("$2")
+				shift
+				;;
+			--exec-before=*)
+				_arg_exec_before+=("${_key##--exec-before=}")
+				;;
+			
 			-h|--help)
 				print_help;
 				exit 0;
@@ -67,7 +96,6 @@ parse_commandline()
 handle_passed_args_count()
 {
 	local _required_args_string="name"
-	test "${_positionals_count}" -le 1 || _PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect at most 1 (namely: $_required_args_string), but got ${_positionals_count} (the last one was: '${_last_positional}')." 1
 	test "${_positionals_count}" -ge 1 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 1 (namely: $_required_args_string), but got only ${_positionals_count}." 1
 }
 
@@ -76,10 +104,17 @@ assign_positional_args()
 {
 	local _positional_name _shift_for=$1;
 	_positional_names="_arg_name ";
+	_leftovers_count=$((${#_positionals[@]} - 1))
+	for ((ii = 0; ii < _leftovers_count; ii++));do
+		_positional_names="$_positional_names _arg_leftovers[$((ii + 0))]";
+	done
+
 	shift "$_shift_for"
 	for _positional_name in ${_positional_names};do
 		test $# -gt 0 || break;
-		eval "if [ \"\$_one_of${_positional_name}\" != \"\" ];then [[ \"\${_one_of${_positional_name}[*]}\" =~ \"\${1}\" ]];fi" || die "${_positional_name} must be one of: $(eval "echo \"\${_one_of${_positional_name}[*]}\"")" 1
+		if ! [[ "$_positional_name" =~ "_arg_leftovers" ]];then
+			eval "if [ \"\$_one_of${_positional_name}\" != \"\" ];then [[ \"\${_one_of${_positional_name}[*]}\" =~ \"\${1}\" ]];fi" || die "${_positional_name} must be one of: $(eval "echo \"\${_one_of${_positional_name}[*]}\"")" 1
+		fi
 eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an Argbash bug." 1;
 		shift;
 	done
@@ -92,6 +127,9 @@ print_debug()
 	echo "DEBUG: $0 $@";
 	
 	echo -e "\t: ${_arg_name}";
+	echo -e "\texec-before: ${_arg_cd | sed 's/-/_/g'}";
+	echo -e "\t: ${_arg_exec-before | sed 's/-/_/g'}";
+	echo -e "\tleftovers: ${_arg_leftovers[*]}";
 
 }
 
@@ -102,8 +140,7 @@ assign_positional_args 1 "${_positionals[@]}"
 # @parseArger-parsing-end
 # print_debug "$@"
 # @parseArger-end
-# shellcheck source=utils
-source "$SSHM0_ROOT_DIR/bin/utils";
+
 #shellcheck source=../server.dist
 
 if sshm0_load_server "$_arg_name"; then
@@ -113,7 +150,36 @@ if sshm0_load_server "$_arg_name"; then
     coarg+=("-i" "$sshm0_server_key");
   fi
 
-  ssh "${coarg[@]}";
+	ecmd="";
+  if [ "$_arg_cd" != "" ] || [ "$sshm0_server_cd" != "" ] || [ "${#_arg_exec_before[@]}" -gt 0 ]; then
+		if [ "$_arg_cd" != "" ]; then
+			ecmd+="cd $_arg_cd;";
+		elif [ "$sshm0_server_cd" != "" ]; then
+			ecmd+="cd $sshm0_server_cd;";
+		fi
+
+		if [ "${#_arg_exec_before[@]}" -gt 0 ]; then
+			for ebefore in "${_arg_exec_before[@]}"; do
+				ecmd+="$ebefore;";
+			done
+		elif [ "${#sshm0_server_exec_before[@]}" -gt 0 ]; then
+			for ebefore in "${sshm0_server_exec_before[@]}"; do
+				ecmd+="$ebefore;";
+			done
+		fi
+  fi
+
+	if [ "${#_arg_leftovers[@]}" -gt 0 ]; then
+		ecmd+="${_arg_leftovers[@]}";
+	elif [ "$ecmd" != "" ]; then
+		ecmd+="\"\$(echo \$SHELL)\"";
+	fi
+
+	if [ "$ecmd" != "" ]; then
+		coarg+=("-t");
+	fi
+
+  ssh "${coarg[@]}" "$ecmd";
 else
   die "Server '$_arg_name' not found." 1;
 fi
