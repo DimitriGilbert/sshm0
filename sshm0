@@ -137,4 +137,3 @@ export SSHM0_CONFIG_DIR="$_arg_config_dir";
 sshm0_load_config;
 
 "$SSHM0_ROOT_DIR/bin/$_arg_target" "${_arg_leftovers[@]}";
-

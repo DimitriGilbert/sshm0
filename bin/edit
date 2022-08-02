@@ -56,7 +56,7 @@ print_help()
 	echo -e "	--auth <auth>: authentication type [one of '' 'key' 'password']"
 	echo -e "	--port <port>: ssh port"
 	echo -e "Usage :
-	$0 <> [--ip <value>] [--user <value>] [--password <value>] [--key <value>] [--auth <value>] [--port <value>]"
+	$0 <name> [--ip <value>] [--user <value>] [--password <value>] [--key <value>] [--auth <value>] [--port <value>]"
 }
 
 parse_commandline()

@@ -37,7 +37,7 @@ print_help()
 	echo -e "remove a server:"
 	echo -e "	name: server name"
 	echo -e "Usage :
-	$0 <>"
+	$0 <name>"
 }
 
 parse_commandline()

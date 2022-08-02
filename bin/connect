@@ -46,7 +46,7 @@ print_help()
 	echo -e "	--cd <cd>: cd to directory"
 	echo -e "	--exec-before <exec-before>: commands to execute before the shell, repeatable"
 	echo -e "Usage :
-	$0 <> [--cd <value>] [--exec-before <value>]"
+	$0 <name> [--cd <value>] [--exec-before <value>]"
 }
 
 parse_commandline()
