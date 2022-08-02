@@ -2,7 +2,7 @@
 
 A simple CLI ssh server manager.
 
-Prounouce "ssshhmeu" ([<https://copenhagensuborbitals.com/a-walkthrough-of-the-nexo-ii-rocket-part-i/](like in the nexö rocket from Copenhagen Suborbital)) or "ssshhmoo" (if you are more of an AvE fan ;))
+Prounouce "ssshhmeu" ( [like in the nexö rocket from Copenhagen Suborbital](https://copenhagensuborbitals.com/a-walkthrough-of-the-nexo-ii-rocket-part-i/) ) or "ssshhmoo" (if you are more of an AvE fan ;))
 
 ## TLDR
 
