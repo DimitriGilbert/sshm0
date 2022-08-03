@@ -17,6 +17,14 @@ cd sshm0;
 ./sshm0 connect <server name>
 ```
 
+## Configs
+
+The main config file is stored in `$HOME/.config/sshm0/config` file by default.
+
+Server configurations are in `$HOME/.config/sshm0/servers/` folder by default.
+
+You can use `--config-dir "/your/own/config/directory"` on every command to use a different config directory.
+
 ## Usage
 
 general usage :
@@ -55,3 +63,25 @@ sshm0 edit <name> --user "newUser" --password "My new password"
 ```bash
 sshm0 connect <name> [--cd "directory to cd on connect" ] [--exec-before "command to exec before" [--exec-before "..."]] [command to execute]
 ```
+
+* name: server name
+* --cd "/directory/to/cd": cd to directory
+* --exec-before "my-command \"and\" args ": commands to execute before the shell, repeatable, will execute in given order
+
+## Plugins
+
+### Add a plugin
+
+```bash
+echo 'shm0_plugins["plugin_name"]="/path/to/plugin"' > "$HOME/.config/sshm0/config";
+```
+
+### Use a plugin
+
+```bash
+sshm0 plugin plugin_name [plugin arguments]
+```
+
+### Building a plugin
+
+`sshm0` exports `$SSHM0_CONFIG_DIR` and `$SSHM0_ROOT_DIR` so you have access to all info sshm0 has.

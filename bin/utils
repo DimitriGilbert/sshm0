@@ -9,14 +9,25 @@ sshm0_install() {
   fi
 }
 
-sshm0_load_config() {
-  if [ ! -d "$SSHM0_CONFIG_DIR" ]; then
-    sshm0_install;
-  fi
-  set -a;
+sshm0_get_plugin() {
   # shellcheck source=../config.dist
   source "$SSHM0_CONFIG_DIR/config";
-  set +a;
+
+  if [ "${sshm0_plugins[$1]}" != "" ]; then
+    echo "${sshm0_plugins[$1]}";
+    return 0;
+  else
+    return 1;
+  fi
+}
+
+sshm0_get_plugin_list() {
+  # shellcheck source=../config.dist
+  source "$SSHM0_CONFIG_DIR/config";
+  
+  for plugin in "${!sshm0_plugins[@]}"; do
+    echo -e "$1$plugin$2";
+  done
 }
 
 sshm0_server_config_path() {
