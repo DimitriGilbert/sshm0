@@ -85,3 +85,5 @@ sshm0 plugin plugin_name [plugin arguments]
 ### Building a plugin
 
 `sshm0` exports `$SSHM0_CONFIG_DIR` and `$SSHM0_ROOT_DIR` so you have access to all info sshm0 has.
+
+sshm0 uses another library to generate the argument parsing code in bash : [parseArger](https://github.com/DimitriGilbert/parseArger), this could be a good starting point, but I don't see why you could not use your favorite scripting language to do stuff ;).
