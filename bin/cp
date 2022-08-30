@@ -1,15 +1,13 @@
 #!/bin/bash
 
 # @parseArger-begin
-# @parseArger-help "sshM0: A CLI ssh manager" --option "_help" --short-option "h"
-# @parseArger-set export SSHM0_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")";pwd -P);
-export SSHM0_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")";pwd -P);
+# @parseArger-help "scp" --option "help" --short-option "h"
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
 source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger-leftovers leftovers
 # @parseArger-declarations
-# @parseArger pos target "what to do" --subcommand --one-of "list" --one-of "add" --one-of "edit" --one-of "connect" --one-of "remove" --one-of "plugin" --one-of "cp"
-# @parseArger opt config-dir "directory containing the configurations" --default-value "/home/didi/.config/sshm0"
+# @parseArger pos src "source"
+# @parseArger pos dest "destination"
 # @parseArger-declarations-end
 
 # @parseArger-parsing
@@ -31,11 +29,9 @@ begins_with_short_option()
 
 # POSITIONALS ARGUMENTS
 _positionals=();
-_arg_target="";
-_one_of_arg_target=("list" "add" "edit" "connect" "remove" "plugin" "cp" );
-_arg_subcommand_arg="_arg_target";
+_arg_src="";
+_arg_dest="";
 # OPTIONALS ARGUMENTS
-_arg_config_dir="/home/didi/.config/sshm0"
 # FLAGS
 # LEFTOVERS
 _arg_leftovers=()
@@ -43,11 +39,11 @@ _arg_leftovers=()
 
 print_help()
 {
-	echo -e "sshM0: A CLI ssh manager:"
-	echo -e "	target: what to do [one of 'list' 'add' 'edit' 'connect' 'remove' 'plugin' 'cp']"
-	echo -e "	--config-dir <config-dir>: directory containing the configurations [default: ' /home/didi/.config/sshm0 ']"
+	echo -e "scp:"
+	echo -e "	src: source"
+	echo -e "	dest: destination"
 	echo -e "Usage :
-	$0 <target> [--config-dir <value>]"
+	$0 <src> <dest>"
 }
 
 parse_commandline()
@@ -57,16 +53,7 @@ parse_commandline()
 	do
 		_key="$1"
 		case "$_key" in
-			--config-dir)
-				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
-				_arg_config_dir="$2"
-				shift
-				;;
-			--config-dir=*)
-				_arg_config_dir="${_key##--config-dir=}"
-				;;
-			
-			-h|--_help)
+			-h|--help)
 				print_help;
 				exit 0;
 				;;
@@ -87,16 +74,16 @@ parse_commandline()
 
 handle_passed_args_count()
 {
-	local _required_args_string="target"
-	test "${_positionals_count}" -ge 1 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 1 (namely: $_required_args_string), but got only ${_positionals_count}." 1
+	local _required_args_string="src dest"
+	test "${_positionals_count}" -ge 2 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 2 (namely: $_required_args_string), but got only ${_positionals_count}." 1
 }
 
 
 assign_positional_args()
 {
 	local _positional_name _shift_for=$1;
-	_positional_names="_arg_target ";
-	_leftovers_count=$((${#_positionals[@]} - 1))
+	_positional_names="_arg_src _arg_dest ";
+	_leftovers_count=$((${#_positionals[@]} - 2))
 	for ((ii = 0; ii < _leftovers_count; ii++));do
 		_positional_names="$_positional_names _arg_leftovers[$((ii + 0))]";
 	done
@@ -118,8 +105,8 @@ print_debug()
 	# shellcheck disable=SC2145
 	echo "DEBUG: $0 $@";
 	
-	echo -e "\ttarget: ${_arg_target}";
-	echo -e "\tconfig-dir: ${_arg_config-dir | sed 's/-/_/g'}";
+	echo -e "\tsrc: ${_arg_src}";
+	echo -e "\tdest: ${_arg_dest}";
 	echo -e "\tleftovers: ${_arg_leftovers[*]}";
 
 }
@@ -132,13 +119,43 @@ assign_positional_args 1 "${_positionals[@]}"
 # print_debug "$@"
 # @parseArger-end
 
-export SSHM0_CONFIG_DIR="$_arg_config_dir";
+#shellcheck source=../server.dist
 
-if [ ! -d "$SSHM0_CONFIG_DIR" ]; then
-	sshm0_install;
+_src="$_arg_src";
+_dest="$_arg_dest";
+_server_name="";
+_rmt="";
+
+if [[ "$_src" == *":/"* ]]; then
+	_server_name="$(echo "$_src" | cut -d ":" -f 1)";
+	_src="$(echo "$_src" | cut -d ":" -f 2)";
+	_rmt="src";
+elif [[ "$_dest" == *":/"* ]]; then
+	_server_name="$(echo "$_dest" | cut -d ":" -f 1)";
+	_dest="$(echo "$_dest" | cut -d ":" -f 2)";
+	_rmt="dest";
+else
+	die "source or destination must be in the form of <server>:<path>" 1;
 fi
 
-# shellcheck source=config.dist
-source "$SSHM0_CONFIG_DIR/config";
+if sshm0_load_server "$_server_name"; then
+	# shellcheck source=../server.dist
+	
+	if [[ "$_rmt" == "src" ]]; then
+		_src="${sshm0_server_user}@${sshm0_server_ip}:$_src";
+	elif [[ "$_rmt" == "dest" ]]; then
+		_dest="${sshm0_server_user}@${sshm0_server_ip}:$_dest";
+	fi
+  coarg=("-P" "${sshm0_server_port}");
 
-"$SSHM0_ROOT_DIR/bin/$_arg_target" "${_arg_leftovers[@]}";
+  if [ "$sshm0_server_auth" == "key" ]; then
+    coarg+=("-i" "$sshm0_server_key");
+  fi
+	coarg+=("$_src" "$_dest");
+
+	# echo "scp ${coarg[@]}";
+
+	scp "${coarg[@]}";
+else
+  die "Server '$_server_name' not found." 1;
+fi
