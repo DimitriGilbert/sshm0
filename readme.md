@@ -68,6 +68,21 @@ sshm0 connect <name> [--cd "directory to cd on connect" ] [--exec-before "comman
 * --cd "/directory/to/cd": cd to directory
 * --exec-before "my-command \"and\" args ": commands to execute before the shell, repeatable, will execute in given order
 
+### copy to/from a server (scp)
+
+```bash
+sshm0 cp <source> <destination>
+
+# local source to server
+sshm0 cp /my/local/file <serverName>:/remote/file/path
+
+# remote source to local
+sshm0 cp <serverName>:/remote/file/path /my/local/file 
+```
+
+* source: source file
+* destination: destination file
+
 ## Plugins
 
 ### Add a plugin
