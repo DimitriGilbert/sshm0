@@ -1,19 +1,23 @@
 #!/bin/bash
 # @parseArger-begin
-# @parseArger-help "run a plugin" --option "_help" --short-option "h"
+# @parseArger-help "run a plugin" --option "help" --short-option "h"
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
 source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger-leftovers leftovers
 # @parseArger-declarations
-# @parseArger pos plugin "plugin to execute: $(sshm0_get_plugin_list)"
+# @parseArger pos plugin "plugin to execute: "
 # @parseArger-declarations-end
+
+# @parseArger-utils
+_helpHasBeenPrinted=1;
+# @parseArger-utils-end
 
 # @parseArger-parsing
 die()
 {
 	local _ret="${2:-1}"
 	test "${_PRINT_HELP:-no}" = yes && print_help >&2
-	echo "$1" >&2
+	echo -e "$1" >&2
 	exit "${_ret}"
 }
 
@@ -36,10 +40,15 @@ _arg_leftovers=()
 
 print_help()
 {
-	echo -e "run a plugin:"
-	echo -e "	plugin: plugin to execute: $(sshm0_get_plugin_list)"
+
+	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
+		_helpHasBeenPrinted=0;
+		echo -e "run a plugin:"
+	echo -e "	plugin: plugin to execute: "
 	echo -e "Usage :
-	$0 <plugin>"
+	$0 <plugin>";
+	fi
+
 }
 
 parse_commandline()
@@ -49,12 +58,20 @@ parse_commandline()
 	do
 		_key="$1"
 		case "$_key" in
-			-h|--_help)
+			-h|--help)
 				print_help;
 				exit 0;
 				;;
 			-h*)
 				print_help;
+				exit 0;
+				;;
+			-v|--version)
+				print_version;
+				exit 0;
+				;;
+			-v*)
+				print_version;
 				exit 0;
 				;;
 			*)
@@ -71,7 +88,10 @@ parse_commandline()
 handle_passed_args_count()
 {
 	local _required_args_string="plugin"
-	test "${_positionals_count}" -ge 1 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 1 (namely: $_required_args_string), but got only ${_positionals_count}." 1
+	if [ "${_positionals_count}" -lt 1 ] && [ "$_helpHasBeenPrinted" == "1" ];then
+		_PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 1 (namely: $_required_args_string), but got only ${_positionals_count}.
+	${_positionals[*]}" 1;
+	fi
 }
 
 
@@ -90,7 +110,7 @@ assign_positional_args()
 		if ! [[ "$_positional_name" =~ "_arg_leftovers" ]];then
 			eval "if [ \"\$_one_of${_positional_name}\" != \"\" ];then [[ \"\${_one_of${_positional_name}[*]}\" =~ \"\${1}\" ]];fi" || die "${_positional_name} must be one of: $(eval "echo \"\${_one_of${_positional_name}[*]}\"")" 1
 		fi
-eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an Argbash bug." 1;
+eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an ParseArger bug." 1;
 		shift;
 	done
 }
@@ -106,9 +126,20 @@ print_debug()
 
 }
 
-parse_commandline "$@"
-handle_passed_args_count
-assign_positional_args 1 "${_positionals[@]}"
+print_version()
+{
+	echo "";
+}
+
+on_interrupt() {
+	die Process aborted! 130;
+}
+
+parse_commandline "$@";
+handle_passed_args_count;
+assign_positional_args 1 "${_positionals[@]}";
+trap on_interrupt INT;
+
 
 # @parseArger-parsing-end
 # print_debug "$@"

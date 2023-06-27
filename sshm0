@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # @parseArger-begin
-# @parseArger-help "sshM0: A CLI ssh manager" --option "_help" --short-option "h"
+# @parseArger-help "sshM0: A CLI ssh manager" --option "help" --short-option "h"
+# @parseArger-version "0.1" --option "version" --short-option "v"
 # @parseArger-set export SSHM0_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")";pwd -P);
 export SSHM0_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")";pwd -P);
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
@@ -12,12 +13,16 @@ source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger opt config-dir "directory containing the configurations" --default-value "/home/didi/.config/sshm0"
 # @parseArger-declarations-end
 
+# @parseArger-utils
+_helpHasBeenPrinted=1;
+# @parseArger-utils-end
+
 # @parseArger-parsing
 die()
 {
 	local _ret="${2:-1}"
 	test "${_PRINT_HELP:-no}" = yes && print_help >&2
-	echo "$1" >&2
+	echo -e "$1" >&2
 	exit "${_ret}"
 }
 
@@ -43,11 +48,25 @@ _arg_leftovers=()
 
 print_help()
 {
-	echo -e "sshM0: A CLI ssh manager:"
+
+	if [ "${#_positionals[@]}" -ge 1 ]; then
+		echo "$0 sub command help
+	"
+	else
+	
+
+	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
+		_helpHasBeenPrinted=0;
+		echo -e "sshM0: A CLI ssh manager:"
 	echo -e "	target: what to do [one of 'list' 'add' 'edit' 'connect' 'remove' 'plugin' 'cp']"
 	echo -e "	--config-dir <config-dir>: directory containing the configurations [default: ' /home/didi/.config/sshm0 ']"
 	echo -e "Usage :
-	$0 <target> [--config-dir <value>]"
+	$0 <target> [--config-dir <value>]";
+	fi
+
+	fi
+	
+
 }
 
 parse_commandline()
@@ -66,12 +85,18 @@ parse_commandline()
 				_arg_config_dir="${_key##--config-dir=}"
 				;;
 			
-			-h|--_help)
+			-h|--help)
 				print_help;
-				exit 0;
 				;;
 			-h*)
 				print_help;
+				;;
+			-v|--version)
+				print_version;
+				exit 0;
+				;;
+			-v*)
+				print_version;
 				exit 0;
 				;;
 			*)
@@ -88,7 +113,10 @@ parse_commandline()
 handle_passed_args_count()
 {
 	local _required_args_string="target"
-	test "${_positionals_count}" -ge 1 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 1 (namely: $_required_args_string), but got only ${_positionals_count}." 1
+	if [ "${_positionals_count}" -lt 1 ] && [ "$_helpHasBeenPrinted" == "1" ];then
+		_PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 1 (namely: $_required_args_string), but got only ${_positionals_count}.
+	${_positionals[*]}" 1;
+	fi
 }
 
 
@@ -107,7 +135,7 @@ assign_positional_args()
 		if ! [[ "$_positional_name" =~ "_arg_leftovers" ]];then
 			eval "if [ \"\$_one_of${_positional_name}\" != \"\" ];then [[ \"\${_one_of${_positional_name}[*]}\" =~ \"\${1}\" ]];fi" || die "${_positional_name} must be one of: $(eval "echo \"\${_one_of${_positional_name}[*]}\"")" 1
 		fi
-eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an Argbash bug." 1;
+eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an ParseArger bug." 1;
 		shift;
 	done
 }
@@ -119,14 +147,25 @@ print_debug()
 	echo "DEBUG: $0 $@";
 	
 	echo -e "\ttarget: ${_arg_target}";
-	echo -e "\tconfig-dir: ${_arg_config-dir | sed 's/-/_/g'}";
+	echo -e "\tconfig-dir: ${_arg_config_dir}";
 	echo -e "\tleftovers: ${_arg_leftovers[*]}";
 
 }
 
-parse_commandline "$@"
-handle_passed_args_count
-assign_positional_args 1 "${_positionals[@]}"
+print_version()
+{
+	echo "0.1";
+}
+
+on_interrupt() {
+	die Process aborted! 130;
+}
+
+parse_commandline "$@";
+handle_passed_args_count;
+assign_positional_args 1 "${_positionals[@]}";
+trap on_interrupt INT;
+
 
 # @parseArger-parsing-end
 # print_debug "$@"

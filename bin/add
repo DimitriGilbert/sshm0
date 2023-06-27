@@ -15,12 +15,16 @@ source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger flag force "force overwrite if server exists" --short f
 # @parseArger-declarations-end
 
+# @parseArger-utils
+_helpHasBeenPrinted=1;
+# @parseArger-utils-end
+
 # @parseArger-parsing
 die()
 {
 	local _ret="${2:-1}"
 	test "${_PRINT_HELP:-no}" = yes && print_help >&2
-	echo "$1" >&2
+	echo -e "$1" >&2
 	exit "${_ret}"
 }
 
@@ -49,7 +53,10 @@ _arg_force="off"
 
 print_help()
 {
-	echo -e "add a server:"
+
+	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
+		_helpHasBeenPrinted=0;
+		echo -e "add a server:"
 	echo -e "	name: server name"
 	echo -e "	ip: ip address"
 	echo -e "	user: username"
@@ -59,7 +66,9 @@ print_help()
 	echo -e "	--port <port>: ssh port [default: ' 22 ']"
 	echo -e "	-f|--force|--no-force: force overwrite if server exists"
 	echo -e "Usage :
-	$0 <name> <ip> <user> [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--[no-]force]"
+	$0 <name> <ip> <user> [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--[no-]force]";
+	fi
+
 }
 
 parse_commandline()
@@ -113,9 +122,11 @@ parse_commandline()
 				_arg_port="${_key##--port=}"
 				;;
 			
-			-f|--no-force|--force)
+			-f|--force)
 				_arg_force="on"
-				test "${1:0:5}" = "--no-" && _arg_force="off"
+				;;
+			--no-force)
+				_arg_force="off"
 				;;
 			-h|--help)
 				print_help;
@@ -123,6 +134,14 @@ parse_commandline()
 				;;
 			-h*)
 				print_help;
+				exit 0;
+				;;
+			-v|--version)
+				print_version;
+				exit 0;
+				;;
+			-v*)
+				print_version;
 				exit 0;
 				;;
 			*)
@@ -139,8 +158,13 @@ parse_commandline()
 handle_passed_args_count()
 {
 	local _required_args_string="name ip user"
-	test "${_positionals_count}" -le 3 || _PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect at most 3 (namely: $_required_args_string), but got ${_positionals_count} (the last one was: '${_last_positional}')." 1
-	test "${_positionals_count}" -ge 3 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 3 (namely: $_required_args_string), but got only ${_positionals_count}." 1
+	if [ "${_positionals_count}" -gt 3 ] && [ "$_helpHasBeenPrinted" == "1" ];then
+		_PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect at most 3 (namely: $_required_args_string), but got ${_positionals_count} (the last one was: '${_last_positional}').\n\t${_positionals[*]}" 1
+	fi
+	if [ "${_positionals_count}" -lt 3 ] && [ "$_helpHasBeenPrinted" == "1" ];then
+		_PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 3 (namely: $_required_args_string), but got only ${_positionals_count}.
+	${_positionals[*]}" 1;
+	fi
 }
 
 
@@ -152,7 +176,7 @@ assign_positional_args()
 	for _positional_name in ${_positional_names};do
 		test $# -gt 0 || break;
 		eval "if [ \"\$_one_of${_positional_name}\" != \"\" ];then [[ \"\${_one_of${_positional_name}[*]}\" =~ \"\${1}\" ]];fi" || die "${_positional_name} must be one of: $(eval "echo \"\${_one_of${_positional_name}[*]}\"")" 1
-eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an Argbash bug." 1;
+eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an ParseArger bug." 1;
 		shift;
 	done
 }
@@ -166,17 +190,28 @@ print_debug()
 	echo -e "\tname: ${_arg_name}";
 	echo -e "\tip: ${_arg_ip}";
 	echo -e "\tuser: ${_arg_user}";
-	echo -e "\tpassword: ${_arg_password | sed 's/-/_/g'}";
-	echo -e "\tkey: ${_arg_key | sed 's/-/_/g'}";
-	echo -e "\tauth: ${_arg_auth | sed 's/-/_/g'}";
-	echo -e "\tport: ${_arg_port | sed 's/-/_/g'}";
-	echo -e "\tforce: ${_arg_force | sed 's/-/_/g'}";
+	echo -e "\tpassword: ${_arg_password}";
+	echo -e "\tkey: ${_arg_key}";
+	echo -e "\tauth: ${_arg_auth}";
+	echo -e "\tport: ${_arg_port}";
+	echo -e "\tforce: ${_arg_force}";
 
 }
 
-parse_commandline "$@"
-handle_passed_args_count
-assign_positional_args 1 "${_positionals[@]}"
+print_version()
+{
+	echo "";
+}
+
+on_interrupt() {
+	die Process aborted! 130;
+}
+
+parse_commandline "$@";
+handle_passed_args_count;
+assign_positional_args 1 "${_positionals[@]}";
+trap on_interrupt INT;
+
 
 # @parseArger-parsing-end
 # print_debug "$@"

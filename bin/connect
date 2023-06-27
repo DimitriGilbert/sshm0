@@ -11,12 +11,16 @@ source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger opt exec-before "commands to execute before the shell" --repeat
 # @parseArger-declarations-end
 
+# @parseArger-utils
+_helpHasBeenPrinted=1;
+# @parseArger-utils-end
+
 # @parseArger-parsing
 die()
 {
 	local _ret="${2:-1}"
 	test "${_PRINT_HELP:-no}" = yes && print_help >&2
-	echo "$1" >&2
+	echo -e "$1" >&2
 	exit "${_ret}"
 }
 
@@ -41,12 +45,17 @@ _arg_leftovers=()
 
 print_help()
 {
-	echo -e "connect to a server:"
+
+	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
+		_helpHasBeenPrinted=0;
+		echo -e "connect to a server:"
 	echo -e "	name: server name"
 	echo -e "	--cd <cd>: cd to directory"
 	echo -e "	--exec-before <exec-before>: commands to execute before the shell, repeatable"
 	echo -e "Usage :
-	$0 <name> [--cd <value>] [--exec-before <value>]"
+	$0 <name> [--cd <value>] [--exec-before <value>]";
+	fi
+
 }
 
 parse_commandline()
@@ -82,6 +91,14 @@ parse_commandline()
 				print_help;
 				exit 0;
 				;;
+			-v|--version)
+				print_version;
+				exit 0;
+				;;
+			-v*)
+				print_version;
+				exit 0;
+				;;
 			*)
 				_last_positional="$1"
 				_positionals+=("$_last_positional")
@@ -96,7 +113,10 @@ parse_commandline()
 handle_passed_args_count()
 {
 	local _required_args_string="name"
-	test "${_positionals_count}" -ge 1 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 1 (namely: $_required_args_string), but got only ${_positionals_count}." 1
+	if [ "${_positionals_count}" -lt 1 ] && [ "$_helpHasBeenPrinted" == "1" ];then
+		_PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 1 (namely: $_required_args_string), but got only ${_positionals_count}.
+	${_positionals[*]}" 1;
+	fi
 }
 
 
@@ -115,7 +135,7 @@ assign_positional_args()
 		if ! [[ "$_positional_name" =~ "_arg_leftovers" ]];then
 			eval "if [ \"\$_one_of${_positional_name}\" != \"\" ];then [[ \"\${_one_of${_positional_name}[*]}\" =~ \"\${1}\" ]];fi" || die "${_positional_name} must be one of: $(eval "echo \"\${_one_of${_positional_name}[*]}\"")" 1
 		fi
-eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an Argbash bug." 1;
+eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an ParseArger bug." 1;
 		shift;
 	done
 }
@@ -127,15 +147,26 @@ print_debug()
 	echo "DEBUG: $0 $@";
 	
 	echo -e "\tname: ${_arg_name}";
-	echo -e "\tcd: ${_arg_cd | sed 's/-/_/g'}";
-	echo -e "\texec-before: ${_arg_exec-before | sed 's/-/_/g'}";
+	echo -e "\tcd: ${_arg_cd}";
+	echo -e "\texec-before: ${_arg_exec_before[*]}";
 	echo -e "\tleftovers: ${_arg_leftovers[*]}";
 
 }
 
-parse_commandline "$@"
-handle_passed_args_count
-assign_positional_args 1 "${_positionals[@]}"
+print_version()
+{
+	echo "";
+}
+
+on_interrupt() {
+	die Process aborted! 130;
+}
+
+parse_commandline "$@";
+handle_passed_args_count;
+assign_positional_args 1 "${_positionals[@]}";
+trap on_interrupt INT;
+
 
 # @parseArger-parsing-end
 # print_debug "$@"
