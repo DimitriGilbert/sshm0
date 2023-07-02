@@ -2,7 +2,7 @@
 
 # @parseArger-begin
 # @parseArger-help "add a server" --option "help" --short-option "h"
-# @parseArger-version "0.2" --option "version" --short-option "v"
+# @parseArger-version "0.2.1" --option "version" --short-option "v"
 # @parseArger-verbose --option "verbose" --level "0"
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
 source "$SSHM0_ROOT_DIR/bin/utils";
@@ -10,11 +10,12 @@ source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger pos name "server name"
 # @parseArger pos ip "ip address"
 # @parseArger pos user "username"
-# @parseArger opt password "user password for the server" --short p
+# @parseArger opt password "user password for the server" --short p --alias pass --alias pwd
 # @parseArger opt key "ssh private key" --short i
-# @parseArger opt auth "authentication type" --one-of "" --one-of "key" --one-of "password"
-# @parseArger opt port "ssh port" --default-value "22"
+# @parseArger opt auth "authentication type" --short a --one-of "" --one-of "key" --one-of "password"
+# @parseArger opt port "ssh port" --short p --default-value "22"
 # @parseArger flag force "force overwrite if server exists" --short f
+# @parseArger flag connect "connect to server" --short c
 # @parseArger-declarations-end
 
 # @parseArger-utils
@@ -52,6 +53,7 @@ _one_of_arg_auth=("" "key" "password" );
 _arg_port="22"
 # FLAGS
 _arg_force="off"
+_arg_connect="off"
 _verbose_level="0";
 
 
@@ -66,13 +68,14 @@ print_help()
 	echo -e "	name: server name"
 	echo -e "	ip: ip address"
 	echo -e "	user: username"
-	echo -e "	-p, --password <password>: user password for the server"
+	echo -e "	-p, --password|--pass|--pwd <password>: user password for the server"
 	echo -e "	-i, --key <key>: ssh private key"
-	echo -e "	--auth <auth>: authentication type [one of '' 'key' 'password']"
-	echo -e "	--port <port>: ssh port [default: ' 22 ']"
+	echo -e "	-a, --auth <auth>: authentication type [one of '' 'key' 'password']"
+	echo -e "	-p, --port <port>: ssh port [default: ' 22 ']"
 	echo -e "	-f|--force|--no-force: force overwrite if server exists"
+	echo -e "	-c|--connect|--no-connect: connect to server"
 	echo -e "Usage :
-	$0 <name> <ip> <user> [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--[no-]force]";
+	$0 <name> <ip> <user> [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--[no-]force] [--[no-]connect]";
 	fi
 
 }
@@ -115,13 +118,19 @@ parse_commandline()
 	do
 		_key="$1"
 		case "$_key" in
-			-p|--password)
+			-p|--pwd|--pass|--password)
 				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
 				_arg_password="$2"
 				shift
 				;;
 			--password=*)
 				_arg_password="${_key##--password=}"
+				;;
+			--pass=*)
+				_arg_password="${_key##--pass=}"
+				;;
+			--pwd=*)
+				_arg_password="${_key##--pwd=}"
 				;;
 			-p*)
 				_arg_password="${_key##-p}"
@@ -139,7 +148,7 @@ parse_commandline()
 				_arg_key="${_key##-i}"
 				;;
 			
-			--auth)
+			-a|--auth)
 				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
 				_arg_auth="$2"
 				if [[ "${#_one_of_arg_auth[@]}" -gt 0 ]];then [[ "${_one_of_arg_auth[*]}" =~ (^|[[:space:]])"$_arg_auth"($|[[:space:]]) ]] || die "auth must be one of:  key password";fi
@@ -149,8 +158,12 @@ parse_commandline()
 				_arg_auth="${_key##--auth=}"
 				if [[ "${#_one_of_arg_auth[@]}" -gt 0 ]];then [[ "${_one_of_arg_auth[*]}" =~ (^|[[:space:]])"$_arg_auth"($|[[:space:]]) ]] || die "auth must be one of:  key password";fi
 				;;
+			-a*)
+				_arg_auth="${_key##-a}"
+				if [[ "${#_one_of_arg_auth[@]}" -gt 0 ]];then [[ "${_one_of_arg_auth[*]}" =~ (^|[[:space:]])"$_arg_auth"($|[[:space:]]) ]] || die "auth must be one of:  key password";fi
+				;;
 			
-			--port)
+			-p|--port)
 				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
 				_arg_port="$2"
 				shift
@@ -158,12 +171,21 @@ parse_commandline()
 			--port=*)
 				_arg_port="${_key##--port=}"
 				;;
+			-p*)
+				_arg_port="${_key##-p}"
+				;;
 			
 			-f|--force)
 				_arg_force="on"
 				;;
 			--no-force)
 				_arg_force="off"
+				;;
+			-c|--connect)
+				_arg_connect="on"
+				;;
+			--no-connect)
+				_arg_connect="off"
 				;;
 			-h|--help)
 				print_help;
@@ -241,12 +263,13 @@ print_debug()
 	echo -e "\tauth: ${_arg_auth}";
 	echo -e "\tport: ${_arg_port}";
 	echo -e "\tforce: ${_arg_force}";
+	echo -e "\tconnect: ${_arg_connect}";
 
 }
 
 print_version()
 {
-	echo "0.2";
+	echo "0.2.1";
 }
 
 on_interrupt() {
@@ -283,6 +306,9 @@ sshm0_server_cd=
 sshm0_server_exec_before=()" > "$(sshm0_server_config_path "$_arg_name")";
 	log "Writting to $(sshm0_server_config_path "$_arg_name")" 2;
 	log "Created server $_arg_name" 1;
+	if [ "$_arg_connect" == "on" ]; then
+		"$_SCRIPT_DIR/../sshm0" connect "$_arg_name";
+	fi
 else
 	log "$_arg_name already exists, use --force to overwrite" -3;
 fi

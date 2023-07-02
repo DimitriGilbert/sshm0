@@ -5,7 +5,7 @@
 ```
 sshM0: A CLI ssh manager:
 	target: what to do [one of 'list' 'add' 'edit' 'connect' 'remove' 'plugin' 'cp' 'cp']
-	--config-dir <config-dir>: directory containing the configurations [default: ' $HOME/.config/sshm0 ']
+	--config-dir <config-dir>: directory containing the configurations [default: ' /home/didi/.config/sshm0 ']
 Usage :
 	sshm0 <target> [--config-dir <value>]
 ```
@@ -26,13 +26,14 @@ add a server:
 	name: server name
 	ip: ip address
 	user: username
-	-p, --password <password>: user password for the server
+	-p, --password|--pass|--pwd <password>: user password for the server
 	-i, --key <key>: ssh private key
-	--auth <auth>: authentication type [one of '' 'key' 'password']
-	--port <port>: ssh port [default: ' 22 ']
+	-a, --auth <auth>: authentication type [one of '' 'key' 'password']
+	-p, --port <port>: ssh port [default: ' 22 ']
 	-f|--force|--no-force: force overwrite if server exists
+	-c|--connect|--no-connect: connect to server
 Usage :
-	sshm0 add <name> <ip> <user> [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--[no-]force]
+	sshm0 add <name> <ip> <user> [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--[no-]force] [--[no-]connect]
 ```
 
 ## sshm0 edit
@@ -48,8 +49,9 @@ add a server:
 	-i, --key <key>: ssh private key
 	--auth <auth>: authentication type [one of '' 'key' 'password']
 	--port <port>: ssh port
+	-c|--connect|--no-connect: connect to server
 Usage :
-	sshm0 edit <name> [--ip <value>] [--user <value>] [--password <value>] [--key <value>] [--auth <value>] [--port <value>]
+	sshm0 edit <name> [--ip <value>] [--user <value>] [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--[no-]connect]
 ```
 
 ## sshm0 connect
@@ -98,17 +100,3 @@ scp:
 Usage :
 	sshm0 cp <src> <dest>
 ```
-
-## sshm0 cp
-
-```
-sshm0 sub command help
-	
-scp:
-	src: source
-	dest: destination
-Usage :
-	sshm0 cp <src> <dest>
-```
-
-

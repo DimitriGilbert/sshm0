@@ -2,7 +2,7 @@
 
 # @parseArger-begin
 # @parseArger-help "add a server" --option "help" --short-option "h"
-# @parseArger-version "0.2" --option "version" --short-option "v"
+# @parseArger-version "0.2.1" --option "version" --short-option "v"
 # @parseArger-verbose --option "verbose" --level "0"
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
 source "$SSHM0_ROOT_DIR/bin/utils";
@@ -14,6 +14,7 @@ source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger opt key "ssh private key" --short i
 # @parseArger opt auth "authentication type" --one-of "" --one-of "key" --one-of "password"
 # @parseArger opt port "ssh port"
+# @parseArger flag connect "connect to server" --short c
 # @parseArger-declarations-end
 
 # @parseArger-utils
@@ -50,6 +51,7 @@ _arg_auth=
 _one_of_arg_auth=("" "key" "password" );
 _arg_port=
 # FLAGS
+_arg_connect="off"
 _verbose_level="0";
 
 
@@ -68,8 +70,9 @@ print_help()
 	echo -e "	-i, --key <key>: ssh private key"
 	echo -e "	--auth <auth>: authentication type [one of '' 'key' 'password']"
 	echo -e "	--port <port>: ssh port"
+	echo -e "	-c|--connect|--no-connect: connect to server"
 	echo -e "Usage :
-	$0 <name> [--ip <value>] [--user <value>] [--password <value>] [--key <value>] [--auth <value>] [--port <value>]";
+	$0 <name> [--ip <value>] [--user <value>] [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--[no-]connect]";
 	fi
 
 }
@@ -174,6 +177,12 @@ parse_commandline()
 				_arg_port="${_key##--port=}"
 				;;
 			
+			-c|--connect)
+				_arg_connect="on"
+				;;
+			--no-connect)
+				_arg_connect="off"
+				;;
 			-h|--help)
 				print_help;
 				exit 0;
@@ -249,12 +258,13 @@ print_debug()
 	echo -e "\tkey: ${_arg_key}";
 	echo -e "\tauth: ${_arg_auth}";
 	echo -e "\tport: ${_arg_port}";
+	echo -e "\tconnect: ${_arg_connect}";
 
 }
 
 print_version()
 {
-	echo "0.2";
+	echo "0.2.1";
 }
 
 on_interrupt() {
@@ -296,6 +306,9 @@ if sshm0_load_server "$_arg_name"; then
 	fi
 	if [ "$_arg_key" != "" ]; then
 		edArg+=("--key" "$_arg_key")
+	fi
+	if [ "$_arg_connect" != "off" ]; then
+		edArg+=("--connect")
 	fi
 
   "$SSHM0_ROOT_DIR/bin/add" "${edArg[@]}"

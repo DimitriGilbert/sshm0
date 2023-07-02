@@ -2,7 +2,7 @@
 
 # @parseArger-begin
 # @parseArger-help "sshM0: A CLI ssh manager" --option "help" --short-option "h"
-# @parseArger-version "0.2" --option "version" --short-option "v"
+# @parseArger-version "0.2.1" --option "version" --short-option "v"
 # @parseArger-verbose --option "verbose" --level "0"
 # @parseArger-set export SSHM0_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")";pwd -P);
 export SSHM0_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")";pwd -P);
@@ -202,7 +202,7 @@ print_debug()
 
 print_version()
 {
-	echo "0.2";
+	echo "0.2.1";
 }
 
 on_interrupt() {

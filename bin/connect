@@ -2,7 +2,7 @@
 
 # @parseArger-begin
 # @parseArger-help "connect to a server" --option "help" --short-option "h"
-# @parseArger-version "0.2" --option "version" --short-option "v"
+# @parseArger-version "0.2.1" --option "version" --short-option "v"
 # @parseArger-verbose --option "verbose" --level "0"
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
 source "$SSHM0_ROOT_DIR/bin/utils";
@@ -201,7 +201,7 @@ print_debug()
 
 print_version()
 {
-	echo "0.2";
+	echo "0.2.1";
 }
 
 on_interrupt() {
