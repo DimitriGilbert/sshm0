@@ -1,0 +1,2 @@
+alias sshm0="${SSHM0_ROOT_DIR}/sshm0";
+source "${SSHM0_ROOT_DIR}/completely.bash"

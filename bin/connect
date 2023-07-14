@@ -2,13 +2,13 @@
 
 # @parseArger-begin
 # @parseArger-help "connect to a server" --option "help" --short-option "h"
-# @parseArger-version "0.2.1" --option "version" --short-option "v"
-# @parseArger-verbose --option "verbose" --level "0"
+# @parseArger-version "0.3" --option "version" --short-option "v"
+# @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
 source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger-leftovers leftovers
 # @parseArger-declarations
-# @parseArger pos name "server name"
+# @parseArger pos name "server name" --complete-custom "/usr/bin/ls \$HOME/.config/sshm0"
 # @parseArger opt cd "cd to directory"
 # @parseArger opt exec-before "commands to execute before the shell" --repeat
 # @parseArger-declarations-end
@@ -137,14 +137,22 @@ parse_commandline()
 				exit 0;
 				;;
 			--verbose)
-				if [ $# -lt 2 ];then
-					_verbose_level="$((_verbose_level + 1))";
-				else
-					_verbose_level="$2";
-					shift;
-				fi
-				;;
-			
+					if [ $# -lt 2 ];then
+						_verbose_level="$((_verbose_level + 1))";
+					else
+						_verbose_level="$2";
+						shift;
+					fi
+					;;
+				--quiet)
+					if [ $# -lt 2 ];then
+						_verbose_level="$((_verbose_level - 1))";
+					else
+						_verbose_level="-$2";
+						shift;
+					fi
+					;;
+				
 			*)
 				_last_positional="$1"
 				_positionals+=("$_last_positional")
@@ -201,7 +209,7 @@ print_debug()
 
 print_version()
 {
-	echo "0.2.1";
+	echo "0.3";
 }
 
 on_interrupt() {
@@ -242,6 +250,8 @@ if sshm0_load_server "$_arg_name"; then
 
 			ecmd+="cd $_arg_cd;";
 		elif [ "$sshm0_server_cd" != "" ]; then
+			log "Default Remote directory :
+	$sshm0_server_cd" 2;
 			ecmd+="cd $sshm0_server_cd;";
 		fi
 
@@ -261,11 +271,15 @@ if sshm0_load_server "$_arg_name"; then
   fi
 
 	if [ "${#_arg_leftovers[@]}" -gt 0 ]; then
-		ecmd+="${_arg_leftovers[@]}";
+		log "Command specified :
+	${_arg_leftovers[*]}" 2;
+		ecmd+="${_arg_leftovers[*]}";
 	elif [ "$ecmd" != "" ]; then
+		# run shell after if exec before specified
 		ecmd+="\"\$(echo \$SHELL)\"";
 	fi
 
+	# if a command exists, set the -t
 	if [ "$ecmd" != "" ]; then
 		coarg+=("-t");
 	fi

@@ -1,0 +1,64 @@
+sshm0:
+- list
+- add
+- connect
+- cp
+- edit
+- plugin
+- remove
+- remove
+- --config-dir
+sshm0 list:
+sshm0 add:
+- --password
+- --pass
+- --pwd
+- -p
+- --key
+- -i
+- --auth
+- -a
+- --port
+- -p
+- --force
+- --no-force
+- -f
+- --connect
+- --no-connect
+- -c
+
+sshm0 add*--key:
+- $(/usr/bin/ls $HOME/.ssh)
+sshm0 connect:
+- $(/usr/bin/ls $HOME/.config/sshm0)
+- --cd
+- --exec-before
+sshm0 cp:
+- <file>
+- <file>
+sshm0 edit:
+- $(/usr/bin/ls $HOME/.config/sshm0)
+- --ip
+- --user
+- --password
+- -p
+- --key
+- -i
+- --auth
+- --port
+- --connect
+- --no-connect
+- -c
+
+
+
+sshm0 edit*--key:
+- $(/usr/bin/ls $HOME/.ssh)
+sshm0 plugin:
+sshm0 remove:
+- $(/usr/bin/ls $HOME/.config/sshm0)
+sshm0 remove:
+- $(/usr/bin/ls $HOME/.config/sshm0)
+
+
+

@@ -1,13 +1,10 @@
 #!/bin/bash
-
 # @parseArger-begin
-# @parseArger-help "remove a server" --option "help" --short-option "h"
-# @parseArger-version "0.3" --option "version" --short-option "v"
-# @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
-# @parseArger-source $SSHM0_ROOT_DIR/bin/utils
-source "$SSHM0_ROOT_DIR/bin/utils";
+# @parseArger-help "Install sshm0" --option "help" --short-option "h"
+# @parseArger-verbose --option "verbose" --level "0"
 # @parseArger-declarations
-# @parseArger pos name "server name" --complete-custom "/usr/bin/ls \$HOME/.config/sshm0"
+# @parseArger opt shell-rc-file "where to put the source directive" --default-value "\$HOME/.bashrc" --repeat --alias install-file
+# @parseArger flag comment "add sshm0 comment" --on
 # @parseArger-declarations-end
 
 # @parseArger-utils
@@ -34,9 +31,10 @@ begins_with_short_option()
 
 # POSITIONALS ARGUMENTS
 _positionals=();
-_arg_name="";
 # OPTIONALS ARGUMENTS
+_arg_shell_rc_file=("$HOME/.bashrc" )
 # FLAGS
+_arg_comment="on"
 _verbose_level="0";
 
 
@@ -47,10 +45,11 @@ print_help()
 
 	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
 		_helpHasBeenPrinted=0;
-		echo -e "remove a server:"
-	echo -e "	name: server name"
+		echo -e "Install parseArger:"
+	echo -e "	--shell-rc-file|--install-file <shell-rc-file>: where to put the source directive, repeatable [default: '( $HOME/.bashrc )']"
+	echo -e "	--comment|--no-comment: add parsearger comment, on by default (use --no-comment to turn it off)"
 	echo -e "Usage :
-	$0 <name>";
+	$0 [--shell-rc-file <value>] [--[no-]comment]";
 	fi
 
 }
@@ -93,6 +92,24 @@ parse_commandline()
 	do
 		_key="$1"
 		case "$_key" in
+			--install-file|--shell-rc-file)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_shell_rc_file+=("$2")
+				shift
+				;;
+			--shell-rc-file=*)
+				_arg_shell_rc_file+=("${_key##--shell-rc-file=}")
+				;;
+			--install-file=*)
+				_arg_shell_rc_file+=("${_key##--install-file=}")
+				;;
+			
+			--comment)
+				_arg_comment="on"
+				;;
+			--no-comment)
+				_arg_comment="off"
+				;;
 			-h|--help)
 				print_help;
 				exit 0;
@@ -110,22 +127,14 @@ parse_commandline()
 				exit 0;
 				;;
 			--verbose)
-					if [ $# -lt 2 ];then
-						_verbose_level="$((_verbose_level + 1))";
-					else
-						_verbose_level="$2";
-						shift;
-					fi
-					;;
-				--quiet)
-					if [ $# -lt 2 ];then
-						_verbose_level="$((_verbose_level - 1))";
-					else
-						_verbose_level="-$2";
-						shift;
-					fi
-					;;
-				
+				if [ $# -lt 2 ];then
+					_verbose_level="$((_verbose_level + 1))";
+				else
+					_verbose_level="$2";
+					shift;
+				fi
+				;;
+			
 			*)
 				_last_positional="$1"
 				_positionals+=("$_last_positional")
@@ -139,12 +148,12 @@ parse_commandline()
 
 handle_passed_args_count()
 {
-	local _required_args_string="name"
-	if [ "${_positionals_count}" -gt 1 ] && [ "$_helpHasBeenPrinted" == "1" ];then
-		_PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect at most 1 (namely: $_required_args_string), but got ${_positionals_count} (the last one was: '${_last_positional}').\n\t${_positionals[*]}" 1
+	local _required_args_string=""
+	if [ "${_positionals_count}" -gt 0 ] && [ "$_helpHasBeenPrinted" == "1" ];then
+		_PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect at most 0 (namely: $_required_args_string), but got ${_positionals_count} (the last one was: '${_last_positional}').\n\t${_positionals[*]}" 1
 	fi
-	if [ "${_positionals_count}" -lt 1 ] && [ "$_helpHasBeenPrinted" == "1" ];then
-		_PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 1 (namely: $_required_args_string), but got only ${_positionals_count}.
+	if [ "${_positionals_count}" -lt 0 ] && [ "$_helpHasBeenPrinted" == "1" ];then
+		_PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 0 (namely: $_required_args_string), but got only ${_positionals_count}.
 	${_positionals[*]}" 1;
 	fi
 }
@@ -153,7 +162,7 @@ handle_passed_args_count()
 assign_positional_args()
 {
 	local _positional_name _shift_for=$1;
-	_positional_names="_arg_name ";
+	_positional_names="";
 	shift "$_shift_for"
 	for _positional_name in ${_positional_names};do
 		test $# -gt 0 || break;
@@ -169,13 +178,14 @@ print_debug()
 	# shellcheck disable=SC2145
 	echo "DEBUG: $0 $@";
 	
-	echo -e "\tname: ${_arg_name}";
+	echo -e "\tshell-rc-file: ${_arg_shell_rc_file[*]}";
+	echo -e "\tcomment: ${_arg_comment}";
 
 }
 
 print_version()
 {
-	echo "0.3";
+	echo "";
 }
 
 on_interrupt() {
@@ -192,9 +202,23 @@ trap on_interrupt INT;
 # @parseArger-parsing-end
 # print_debug "$@"
 # @parseArger-end
+_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+output="\nexport SSHM0_ROOT_DIR=\"$_dir\"
+source ${_dir}/sshm0.rc";
 
-if sshm0_server_exists "$_arg_name"; then
-	rm "$(sshm0_server_config_path "$_arg_name")";
-else
-	echo "Server $_arg_name not found";
+if [ "$_arg_comment" != "off" ]; then
+	output="\n# sshm0${output}";
 fi
+
+for _file in "${_arg_shell_rc_file[@]}"; do
+	if [ -f "$_file" ]; then
+		if ! grep -q "sshm0" "$_file"; then
+			echo -e "$output" >> "$_file";
+			log "sshm0 installed in $_file" 1;
+		else
+			log "sshm0 already installed in $_file" 1;
+		fi
+	else
+		log "File $_file not found" -1;
+	fi
+done

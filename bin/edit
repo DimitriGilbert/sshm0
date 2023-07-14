@@ -2,16 +2,16 @@
 
 # @parseArger-begin
 # @parseArger-help "add a server" --option "help" --short-option "h"
-# @parseArger-version "0.2.1" --option "version" --short-option "v"
-# @parseArger-verbose --option "verbose" --level "0"
+# @parseArger-version "0.3" --option "version" --short-option "v"
+# @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
 source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger-declarations
-# @parseArger pos name "server name"
+# @parseArger pos name "server name" --complete-custom "/usr/bin/ls \$HOME/.config/sshm0"
 # @parseArger opt ip "ip address"
 # @parseArger opt user "username"
 # @parseArger opt password "user password for the server" --short p
-# @parseArger opt key "ssh private key" --short i
+# @parseArger opt key "ssh private key" --short i  --complete-custom "/usr/bin/ls \$HOME/.ssh"
 # @parseArger opt auth "authentication type" --one-of "" --one-of "key" --one-of "password"
 # @parseArger opt port "ssh port"
 # @parseArger flag connect "connect to server" --short c
@@ -200,14 +200,22 @@ parse_commandline()
 				exit 0;
 				;;
 			--verbose)
-				if [ $# -lt 2 ];then
-					_verbose_level="$((_verbose_level + 1))";
-				else
-					_verbose_level="$2";
-					shift;
-				fi
-				;;
-			
+					if [ $# -lt 2 ];then
+						_verbose_level="$((_verbose_level + 1))";
+					else
+						_verbose_level="$2";
+						shift;
+					fi
+					;;
+				--quiet)
+					if [ $# -lt 2 ];then
+						_verbose_level="$((_verbose_level - 1))";
+					else
+						_verbose_level="-$2";
+						shift;
+					fi
+					;;
+				
 			*)
 				_last_positional="$1"
 				_positionals+=("$_last_positional")
@@ -264,7 +272,7 @@ print_debug()
 
 print_version()
 {
-	echo "0.2.1";
+	echo "0.3";
 }
 
 on_interrupt() {

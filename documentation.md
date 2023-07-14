@@ -4,7 +4,7 @@
 
 ```
 sshM0: A CLI ssh manager:
-	target: what to do [one of 'list' 'add' 'edit' 'connect' 'remove' 'plugin' 'cp' 'cp']
+	target: what to do [one of 'list' 'add' 'connect' 'cp' 'edit' 'plugin' 'remove' 'remove']
 	--config-dir <config-dir>: directory containing the configurations [default: ' /home/didi/.config/sshm0 ']
 Usage :
 	sshm0 <target> [--config-dir <value>]
@@ -14,7 +14,7 @@ Usage :
 
 ```
 sshm0 sub command help
-	
+
 ```
 
 ## sshm0 add
@@ -36,6 +36,31 @@ Usage :
 	sshm0 add <name> <ip> <user> [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--[no-]force] [--[no-]connect]
 ```
 
+## sshm0 connect
+
+```
+sshm0 sub command help
+	
+connect to a server:
+	name: server name
+	--cd <cd>: cd to directory
+	--exec-before <exec-before>: commands to execute before the shell, repeatable
+Usage :
+	sshm0 connect <name> [--cd <value>] [--exec-before <value>]
+```
+
+## sshm0 cp
+
+```
+sshm0 sub command help
+	
+scp:
+	src: source
+	dest: destination
+Usage :
+	sshm0 cp <src> <dest>
+```
+
 ## sshm0 edit
 
 ```
@@ -54,30 +79,6 @@ Usage :
 	sshm0 edit <name> [--ip <value>] [--user <value>] [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--[no-]connect]
 ```
 
-## sshm0 connect
-
-```
-sshm0 sub command help
-	
-connect to a server:
-	name: server name
-	--cd <cd>: cd to directory
-	--exec-before <exec-before>: commands to execute before the shell, repeatable
-Usage :
-	sshm0 connect <name> [--cd <value>] [--exec-before <value>]
-```
-
-## sshm0 remove
-
-```
-sshm0 sub command help
-	
-remove a server:
-	name: server name
-Usage :
-	sshm0 remove <name>
-```
-
 ## sshm0 plugin
 
 ```
@@ -89,14 +90,13 @@ Usage :
 	sshm0 plugin <plugin>
 ```
 
-## sshm0 cp
+## sshm0 remove
 
 ```
 sshm0 sub command help
 	
-scp:
-	src: source
-	dest: destination
+remove a server:
+	name: server name
 Usage :
-	sshm0 cp <src> <dest>
+	sshm0 remove <name>
 ```
