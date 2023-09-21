@@ -37,15 +37,15 @@ _sshm0_completions() {
       ;;
 
     'connect'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(/usr/bin/ls $HOME/.config/sshm0) --cd --exec-before")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(/usr/bin/ls $HOME/.config/sshm0/servers) --cd --exec-before")" -- "$cur" )
       ;;
 
     'remove'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(/usr/bin/ls $HOME/.config/sshm0)")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(/usr/bin/ls $HOME/.config/sshm0/servers)")" -- "$cur" )
       ;;
 
     'edit'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(/usr/bin/ls $HOME/.config/sshm0) --ip --user --password -p --key -i --auth --port --connect --no-connect -c")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(/usr/bin/ls $HOME/.config/sshm0/servers) --ip --user --password -p --key -i --auth --port --connect --no-connect -c")" -- "$cur" )
       ;;
 
     'add'*)

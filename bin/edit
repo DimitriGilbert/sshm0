@@ -7,11 +7,11 @@
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
 source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger-declarations
-# @parseArger pos name "server name" --complete-custom "/usr/bin/ls \$HOME/.config/sshm0"
+# @parseArger pos name "server name" --complete-custom "/usr/bin/ls \$HOME/.config/sshm0/servers"
 # @parseArger opt ip "ip address"
 # @parseArger opt user "username"
 # @parseArger opt password "user password for the server" --short p
-# @parseArger opt key "ssh private key" --short i  --complete-custom "/usr/bin/ls \$HOME/.ssh"
+# @parseArger opt key "ssh private key" --short i --complete-custom "/usr/bin/ls $HOME/.ssh"
 # @parseArger opt auth "authentication type" --one-of "" --one-of "key" --one-of "password"
 # @parseArger opt port "ssh port"
 # @parseArger flag connect "connect to server" --short c

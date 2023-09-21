@@ -189,7 +189,18 @@ assign_positional_args()
 		test $# -gt 0 || break;
 		if ! [[ "$_positional_name" =~ "_arg_leftovers" ]];then
 			eval "if [ \"\$_one_of${_positional_name}\" != \"\" ];then [[ \"\${_one_of${_positional_name}[*]}\" =~ \"\${1}\" ]];fi" || die "${_positional_name} must be one of: $(eval "echo \"\${_one_of${_positional_name}[*]}\"")" 1;
-			__subcommand+=("$_SCRIPT_DIR/./bin/${1}");
+			
+			if [ "$_arg_subcommand_arg" == "$_positional_name" ];then
+				if [ -d "$_SCRIPT_DIR/bin/${1}" ];then
+					__subcommand+=("$_SCRIPT_DIR/bin/${1}");
+				elif [[ "bin/" == $(basename "$_SCRIPT_DIR")* ]];then
+					cmdToSub="$(basename "$_SCRIPT_DIR")";
+					cmdsubDir="bin/";
+					__subcommand+=("$_SCRIPT_DIR${cmdsubDir#"${cmdToSub}"}${1}");
+				else
+					__subcommand+=("$_SCRIPT_DIR/bin/${1}");
+				fi
+			fi
 		fi
 		eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an ParseArger bug." 1;
 		shift;
@@ -223,13 +234,13 @@ assign_positional_args 1 "${_positionals[@]}";
 trap on_interrupt INT;
 
 
+__subcommand+=("${_arg_leftovers[@]}");
 if [ "$_triggerSCHelp" == "0" ];then
 	__subcommand+=("--help");
 fi
 if [ "$_verbose_level" -ne "0" ];then
 	__subcommand+=("--verbose" "$_verbose_level");
 fi
-__subcommand+=("${_arg_leftovers[@]}");
 
 # @parseArger-parsing-end
 # print_debug "$@"

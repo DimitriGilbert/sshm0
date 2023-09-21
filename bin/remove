@@ -7,7 +7,7 @@
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
 source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger-declarations
-# @parseArger pos name "server name" --complete-custom "/usr/bin/ls \$HOME/.config/sshm0"
+# @parseArger pos name "server name" --complete-custom "/usr/bin/ls \$HOME/.config/sshm0/servers"
 # @parseArger-declarations-end
 
 # @parseArger-utils

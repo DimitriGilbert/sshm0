@@ -5,7 +5,7 @@
 ```
 sshM0: A CLI ssh manager:
 	target: what to do [one of 'list' 'add' 'connect' 'cp' 'edit' 'plugin' 'remove' 'remove']
-	--config-dir <config-dir>: directory containing the configurations [default: ' /home/didi/.config/sshm0 ']
+	--config-dir <config-dir>: directory containing the configurations [default: ' $HOME/.config/sshm0 ']
 Usage :
 	sshm0 <target> [--config-dir <value>]
 ```

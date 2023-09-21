@@ -8,7 +8,7 @@
 source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger-leftovers leftovers
 # @parseArger-declarations
-# @parseArger pos name "server name" --complete-custom "/usr/bin/ls \$HOME/.config/sshm0"
+# @parseArger pos name "server name" --complete-custom "/usr/bin/ls \$HOME/.config/sshm0/servers"
 # @parseArger opt cd "cd to directory"
 # @parseArger opt exec-before "commands to execute before the shell" --repeat
 # @parseArger-declarations-end

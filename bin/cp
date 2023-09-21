@@ -8,8 +8,8 @@
 source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger-leftovers leftovers
 # @parseArger-declarations
-# @parseArger pos src "source" --complete file
-# @parseArger pos dest "destination" --complete file
+# @parseArger pos src "source" --complete "file"
+# @parseArger pos dest "destination" --complete "file"
 # @parseArger-declarations-end
 
 # @parseArger-utils

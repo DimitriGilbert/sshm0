@@ -30,14 +30,14 @@ sshm0 add:
 sshm0 add*--key:
 - $(/usr/bin/ls $HOME/.ssh)
 sshm0 connect:
-- $(/usr/bin/ls $HOME/.config/sshm0)
+- $(/usr/bin/ls $HOME/.config/sshm0/servers)
 - --cd
 - --exec-before
 sshm0 cp:
 - <file>
 - <file>
 sshm0 edit:
-- $(/usr/bin/ls $HOME/.config/sshm0)
+- $(/usr/bin/ls $HOME/.config/sshm0/servers)
 - --ip
 - --user
 - --password
@@ -56,9 +56,9 @@ sshm0 edit*--key:
 - $(/usr/bin/ls $HOME/.ssh)
 sshm0 plugin:
 sshm0 remove:
-- $(/usr/bin/ls $HOME/.config/sshm0)
+- $(/usr/bin/ls $HOME/.config/sshm0/servers)
 sshm0 remove:
-- $(/usr/bin/ls $HOME/.config/sshm0)
+- $(/usr/bin/ls $HOME/.config/sshm0/servers)
 
 
 
