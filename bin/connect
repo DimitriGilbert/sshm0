@@ -227,8 +227,8 @@ trap on_interrupt INT;
 # print_debug "$@"
 # @parseArger-end
 
-#shellcheck source=../server.dist
 
+#shellcheck source=../server.dist
 if sshm0_load_server "$_arg_name"; then
   coarg=("${sshm0_server_user}@${sshm0_server_ip}" "-p" "${sshm0_server_port}");
 	
@@ -236,8 +236,7 @@ if sshm0_load_server "$_arg_name"; then
 	${sshm0_server_user}@${sshm0_server_ip}:${sshm0_server_port}" 2;
 
   if [ "$sshm0_server_auth" == "key" ]; then
-		log "Using auth key
-	$sshm0_server_key" 2;
+		log "Using auth key\n$sshm0_server_key" 2;
 
     coarg+=("-i" "$sshm0_server_key");
   fi
@@ -271,8 +270,7 @@ if sshm0_load_server "$_arg_name"; then
   fi
 
 	if [ "${#_arg_leftovers[@]}" -gt 0 ]; then
-		log "Command specified :
-	${_arg_leftovers[*]}" 2;
+		log "Command specified :\n\t${_arg_leftovers[*]}" 2;
 		ecmd+="${_arg_leftovers[*]}";
 	elif [ "$ecmd" != "" ]; then
 		# run shell after if exec before specified
@@ -284,7 +282,23 @@ if sshm0_load_server "$_arg_name"; then
 		coarg+=("-t");
 	fi
 
-  ssh "${coarg[@]}" "$ecmd";
+	# https://stackoverflow.com/a/38745725
+	# that is awesome :D
+  if [ "$sshm0_server_auth" == "password" ] && [ "$sshm0_server_password" != "" ]; then
+		log "Using auth password BAAAADDDDD !!" 0;
+		_tmpps="$(mktemp)";
+		echo "echo \"$sshm0_server_password\"" > "$_tmpps";
+		chmod 777 "$_tmpps";
+		export SSH_ASKPASS="$_tmpps";
+		export DISPLAY="YOURDOINGITWRONG";
+		coarg+=(-p);
+  fi
+
+  setsid ssh "${coarg[@]}" "$ecmd";
+  
+	if [ "$_tmpps" != "" ] && [ -f "$_tmpps" ]; then
+		rm -f "$_tmpps";
+  fi
 else
   die "Server '$_arg_name' not found." 1;
 fi
