@@ -36,10 +36,12 @@ begins_with_short_option()
 
 # POSITIONALS ARGUMENTS
 _positionals=();
+_optional_positionals=();
 _arg_src="";
 _arg_dest="";
 # OPTIONALS ARGUMENTS
 # FLAGS
+# NESTED
 # LEFTOVERS
 _arg_leftovers=()
 _verbose_level="0";
@@ -63,7 +65,7 @@ print_help()
 
 log() {
 	local _arg_msg="${1}";
-	local _arg_level="${2:"0"}";
+	local _arg_level="${2:-"0"}";
 	if [ "${_arg_level}" -le "${_verbose_level}" ]; then
 		case "$_arg_level" in
 			-3)
@@ -132,7 +134,7 @@ parse_commandline()
 					fi
 					;;
 				
-			*)
+				*)
 				_last_positional="$1"
 				_positionals+=("$_last_positional")
 				_positionals_count=$((_positionals_count + 1))
@@ -237,13 +239,28 @@ if sshm0_load_server "$_server_name"; then
   if [ "$sshm0_server_auth" == "key" ]; then
     coarg+=("-i" "$sshm0_server_key");
   fi
+
+	# https://stackoverflow.com/a/38745725
+	# that is awesome :D
+  if [ "$sshm0_server_auth" == "password" ] && [ "$sshm0_server_password" != "" ]; then
+		log "Using auth password BAAAADDDDD !!" -1;
+		_tmpps="$(mktemp)";
+		echo "echo \"$sshm0_server_password\"" > "$_tmpps";
+		chmod 777 "$_tmpps";
+		export SSH_ASKPASS="$_tmpps";
+		export DISPLAY="YOURDOINGITWRONG";
+		coarg+=(-p);
+  fi
+
 	coarg+=("$_src" "$_dest");
-
 	
-	log "scp $_server_name :
-	${_src} to ${_dest}" 2;
+	log "scp $_server_name :\n${_src} to ${_dest}" 2;
 
-	scp "${coarg[@]}";
+	setsid scp "${coarg[@]}";
+  
+	if [ "$_tmpps" != "" ] && [ -f "$_tmpps" ]; then
+		rm -f "$_tmpps";
+  fi
 else
   die "Server '$_server_name' not found." 1;
 fi

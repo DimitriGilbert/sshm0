@@ -37,11 +37,13 @@ begins_with_short_option()
 
 # POSITIONALS ARGUMENTS
 _positionals=();
+_optional_positionals=();
 _arg_name="";
 # OPTIONALS ARGUMENTS
 _arg_cd=
 _arg_exec_before=()
 # FLAGS
+# NESTED
 # LEFTOVERS
 _arg_leftovers=()
 _verbose_level="0";
@@ -66,7 +68,7 @@ print_help()
 
 log() {
 	local _arg_msg="${1}";
-	local _arg_level="${2:"0"}";
+	local _arg_level="${2:-"0"}";
 	if [ "${_arg_level}" -le "${_verbose_level}" ]; then
 		case "$_arg_level" in
 			-3)
@@ -153,7 +155,7 @@ parse_commandline()
 					fi
 					;;
 				
-			*)
+				*)
 				_last_positional="$1"
 				_positionals+=("$_last_positional")
 				_positionals_count=$((_positionals_count + 1))
@@ -227,7 +229,6 @@ trap on_interrupt INT;
 # print_debug "$@"
 # @parseArger-end
 
-
 #shellcheck source=../server.dist
 if sshm0_load_server "$_arg_name"; then
   coarg=("${sshm0_server_user}@${sshm0_server_ip}" "-p" "${sshm0_server_port}");
@@ -285,7 +286,7 @@ if sshm0_load_server "$_arg_name"; then
 	# https://stackoverflow.com/a/38745725
 	# that is awesome :D
   if [ "$sshm0_server_auth" == "password" ] && [ "$sshm0_server_password" != "" ]; then
-		log "Using auth password BAAAADDDDD !!" 0;
+		log "Using auth password BAAAADDDDD !!" -1;
 		_tmpps="$(mktemp)";
 		echo "echo \"$sshm0_server_password\"" > "$_tmpps";
 		chmod 777 "$_tmpps";

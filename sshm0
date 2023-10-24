@@ -38,6 +38,7 @@ begins_with_short_option()
 
 # POSITIONALS ARGUMENTS
 _positionals=();
+_optional_positionals=();
 _arg_target="";
 _one_of_arg_target=("list" "add" "connect" "cp" "edit" "plugin" "remove" "remove" );
 _arg_subcommand_arg="_arg_target";
@@ -45,6 +46,7 @@ __subcommand=();
 # OPTIONALS ARGUMENTS
 _arg_config_dir="$HOME/.config/sshm0"
 # FLAGS
+# NESTED
 # LEFTOVERS
 _arg_leftovers=()
 _verbose_level="0";
@@ -78,7 +80,7 @@ print_help()
 
 log() {
 	local _arg_msg="${1}";
-	local _arg_level="${2:"0"}";
+	local _arg_level="${2:-"0"}";
 	if [ "${_arg_level}" -le "${_verbose_level}" ]; then
 		case "$_arg_level" in
 			-3)
@@ -154,7 +156,7 @@ parse_commandline()
 					fi
 					;;
 				
-			*)
+				*)
 				_last_positional="$1"
 				_positionals+=("$_last_positional")
 				_positionals_count=$((_positionals_count + 1))

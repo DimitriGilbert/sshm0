@@ -42,6 +42,7 @@ begins_with_short_option()
 
 # POSITIONALS ARGUMENTS
 _positionals=();
+_optional_positionals=();
 _arg_name="";
 _arg_ip="";
 _arg_user="";
@@ -54,6 +55,7 @@ _arg_port="22"
 # FLAGS
 _arg_force="off"
 _arg_connect="off"
+# NESTED
 _verbose_level="0";
 
 
@@ -82,7 +84,7 @@ print_help()
 
 log() {
 	local _arg_msg="${1}";
-	local _arg_level="${2:"0"}";
+	local _arg_level="${2:-"0"}";
 	if [ "${_arg_level}" -le "${_verbose_level}" ]; then
 		case "$_arg_level" in
 			-3)
@@ -220,7 +222,7 @@ parse_commandline()
 					fi
 					;;
 				
-			*)
+				*)
 				_last_positional="$1"
 				_positionals+=("$_last_positional")
 				_positionals_count=$((_positionals_count + 1))

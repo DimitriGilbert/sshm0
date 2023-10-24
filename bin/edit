@@ -11,7 +11,7 @@ source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger opt ip "ip address"
 # @parseArger opt user "username"
 # @parseArger opt password "user password for the server" --short p
-# @parseArger opt key "ssh private key" --short i --complete-custom "/usr/bin/ls $HOME/.ssh"
+# @parseArger opt key "ssh private key" --short i --complete-custom "/usr/bin/ls \$HOME/.ssh"
 # @parseArger opt auth "authentication type" --one-of "" --one-of "key" --one-of "password"
 # @parseArger opt port "ssh port"
 # @parseArger flag connect "connect to server" --short c
@@ -41,6 +41,7 @@ begins_with_short_option()
 
 # POSITIONALS ARGUMENTS
 _positionals=();
+_optional_positionals=();
 _arg_name="";
 # OPTIONALS ARGUMENTS
 _arg_ip=
@@ -52,6 +53,7 @@ _one_of_arg_auth=("" "key" "password" );
 _arg_port=
 # FLAGS
 _arg_connect="off"
+# NESTED
 _verbose_level="0";
 
 
@@ -79,7 +81,7 @@ print_help()
 
 log() {
 	local _arg_msg="${1}";
-	local _arg_level="${2:"0"}";
+	local _arg_level="${2:-"0"}";
 	if [ "${_arg_level}" -le "${_verbose_level}" ]; then
 		case "$_arg_level" in
 			-3)
@@ -216,7 +218,7 @@ parse_commandline()
 					fi
 					;;
 				
-			*)
+				*)
 				_last_positional="$1"
 				_positionals+=("$_last_positional")
 				_positionals_count=$((_positionals_count + 1))
