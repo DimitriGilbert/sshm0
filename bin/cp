@@ -2,7 +2,7 @@
 
 # @parseArger-begin
 # @parseArger-help "scp" --option "help" --short-option "h"
-# @parseArger-version "0.3" --option "version" --short-option "v"
+# @parseArger-version "0.3.1" --option "version" --short-option "v"
 # @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
 source "$SSHM0_ROOT_DIR/bin/utils";
@@ -18,9 +18,15 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)";
 # @parseArger-utils-end
 
 # @parseArger-parsing
+
+__cli_arg_count=$#;
+
 die()
 {
-	local _ret="${2:-1}"
+	local _ret=1
+    if [[ -n "$2" ]] && [[ "$2" =~ ^[0-9]+$ ]]; then
+   	_ret="$2"
+    fi
 	test "${_PRINT_HELP:-no}" = yes && print_help >&2
 	log "$1" -3 >&2
 	exit "${_ret}"
@@ -65,7 +71,7 @@ print_help()
 
 log() {
 	local _arg_msg="${1}";
-	local _arg_level="${2:-"0"}";
+	local _arg_level="${2:-0}";
 	if [ "${_arg_level}" -le "${_verbose_level}" ]; then
 		case "$_arg_level" in
 			-3)
@@ -181,20 +187,23 @@ print_debug()
 	# shellcheck disable=SC2145
 	echo "DEBUG: $0 $@";
 	
-	echo -e "\tsrc: ${_arg_src}";
-	echo -e "\tdest: ${_arg_dest}";
-	echo -e "\tleftovers: ${_arg_leftovers[*]}";
+	echo -e "	src: ${_arg_src}";
+	echo -e "	dest: ${_arg_dest}";
+	echo -e "	leftovers: ${_arg_leftovers[*]}";
 
 }
+
 
 print_version()
 {
-	echo "0.3";
+	echo "0.3.1";
 }
+
 
 on_interrupt() {
 	die Process aborted! 130;
 }
+
 
 parse_commandline "$@";
 handle_passed_args_count;
@@ -243,7 +252,9 @@ if sshm0_load_server "$_server_name"; then
 	# https://stackoverflow.com/a/38745725
 	# that is awesome :D
   if [ "$sshm0_server_auth" == "password" ] && [ "$sshm0_server_password" != "" ]; then
-		log "Using auth password BAAAADDDDD !!" -1;
+		if [ "$sshm0_server_password_bad" != "I KNOW" ]; then
+			log "Using auth password BAAAADDDDD !!" -1;
+		fi
 		_tmpps="$(mktemp)";
 		echo "echo \"$sshm0_server_password\"" > "$_tmpps";
 		chmod 777 "$_tmpps";

@@ -2,13 +2,13 @@
 
 # @parseArger-begin
 # @parseArger-help "connect to a server" --option "help" --short-option "h"
-# @parseArger-version "0.3" --option "version" --short-option "v"
+# @parseArger-version "0.3.1" --option "version" --short-option "v"
 # @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
 source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger-leftovers leftovers
 # @parseArger-declarations
-# @parseArger pos name "server name" --complete-custom "/usr/bin/ls \$HOME/.config/sshm0/servers"
+# @parseArger pos name "server name" --complete-custom "/usr/bin/ls /home/didi/.config/sshm0/servers"
 # @parseArger opt cd "cd to directory"
 # @parseArger opt exec-before "commands to execute before the shell" --repeat
 # @parseArger-declarations-end
@@ -19,9 +19,15 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)";
 # @parseArger-utils-end
 
 # @parseArger-parsing
+
+__cli_arg_count=$#;
+
 die()
 {
-	local _ret="${2:-1}"
+	local _ret=1
+    if [[ -n "$2" ]] && [[ "$2" =~ ^[0-9]+$ ]]; then
+   	_ret="$2"
+    fi
 	test "${_PRINT_HELP:-no}" = yes && print_help >&2
 	log "$1" -3 >&2
 	exit "${_ret}"
@@ -68,7 +74,7 @@ print_help()
 
 log() {
 	local _arg_msg="${1}";
-	local _arg_level="${2:-"0"}";
+	local _arg_level="${2:-0}";
 	if [ "${_arg_level}" -le "${_verbose_level}" ]; then
 		case "$_arg_level" in
 			-3)
@@ -202,21 +208,24 @@ print_debug()
 	# shellcheck disable=SC2145
 	echo "DEBUG: $0 $@";
 	
-	echo -e "\tname: ${_arg_name}";
-	echo -e "\tcd: ${_arg_cd}";
-	echo -e "\texec-before: ${_arg_exec_before[*]}";
-	echo -e "\tleftovers: ${_arg_leftovers[*]}";
+	echo -e "	name: ${_arg_name}";
+	echo -e "	cd: ${_arg_cd}";
+	echo -e "	exec-before: ${_arg_exec_before[*]}";
+	echo -e "	leftovers: ${_arg_leftovers[*]}";
 
 }
+
 
 print_version()
 {
-	echo "0.3";
+	echo "0.3.1";
 }
+
 
 on_interrupt() {
 	die Process aborted! 130;
 }
+
 
 parse_commandline "$@";
 handle_passed_args_count;
@@ -286,7 +295,9 @@ if sshm0_load_server "$_arg_name"; then
 	# https://stackoverflow.com/a/38745725
 	# that is awesome :D
   if [ "$sshm0_server_auth" == "password" ] && [ "$sshm0_server_password" != "" ]; then
-		log "Using auth password BAAAADDDDD !!" -1;
+		if [ "$sshm0_server_password_bad" != "I KNOW" ]; then
+			log "Using auth password BAAAADDDDD !!" -1;
+		fi
 		_tmpps="$(mktemp)";
 		echo "echo \"$sshm0_server_password\"" > "$_tmpps";
 		chmod 777 "$_tmpps";

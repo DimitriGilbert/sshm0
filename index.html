@@ -47,15 +47,96 @@
     <div id="pa-about" class="pa-tab">
       <h2>What is sshm0 ?</h2>
       <div class="row justify-content-between pa-answer">
+        It is a terminal based ssh connection manager, like Putty, but no gui ;).
+        <br>
+        Just like ssh, you can execute stuff directly (just put your command at the end), and the `cp` command is a wrapper for scp.
+      </div>
+      <h2>TLDR</h2>
+      <div class="row justify-content-between pa-answer">
+        <code-input># download the install script
+curl -s https://raw.githubusercontent.com/DimitriGilbert/sshm0/main/utils/get_sshm0 -O;
+# make it executable
+chmod +x get_sshm0;
+# install
+./get_sshm0 --install;
+# source bashrc, only needed once, modify according to your shell (if you don't know, it's the good one :D)
+source "$HOME/.bashrc"
+
+# create a server with password auth
+sshm0 add my-server 192.168.1.25 my-user --auth password --password my-password
+# connect to it
+sshm0 connect my-server
+
+# create a server with key auth on port 42069
+sshm0 add my-server 192.168.1.25 my-user --auth key --key /path/to/my/key --port 42069
+</code-input>
+      </div>
+      <h2>Backstory, maybe ?</h2>
+      <div class="row justify-content-between pa-answer">
         <div class="col-8">
-          TODO !!<br>
-          TADA !!<br>
+          A long time ago, in a galaxy far far away, I used to use windows (do not judge me, I am sure you have a bootable partition somewhere !), and for ssh, there was Putty.
+          <br>
+          Naturaly, while switching to a non crippling operating system, I was on the look for an alternative ssh connection manager and stumbled upon gnome-connection-manager, but it died...
+          <br>
+          I then just set to remember all IP addresses and ports and passwords, or key files and I never spent time lookiong for that, ever, truth ! I swear !
+          <br>
+          When someday I created [parseArger](https://github.com/DimitriGilbert/parseArger) and needed a project to test it on, and eventhough it was not a pain at all to manage my ssh connection (I promise it was not !), I thought, why not try to build something, and here we are !
+          <br>
+          More usefull then a standard `hello-world` project, and I can use it everyday !
         </div>
         <div class="col-3">
           <!-- <img src="https://media.tenor.com/h7pTjqI3gskAAAAM/wow-hillary-clinton.gif" alt="You made this, I made this" class="img-fluid">
           <a href="https://tenor.com/view/wow-hillary-clinton-amused-gif-5925072" target="_blank" rel="noopener noreferrer">Source</a> -->
         </div>
-      </div> 
+      </div>
+      
+      <h2>How do I install ?</h2>
+      <div class="row justify-content-between pa-answer">
+        There is a script for that !, just open up a terminal and run the following command :
+        <code-input># download the install script
+curl -s https://raw.githubusercontent.com/DimitriGilbert/sshm0/main/utils/get_sshm0 -O;
+# Friendly reminder to please read scripts before running them on your machine, (you 'll) thank you !
+cat get_sshm0;
+# make it executable
+chmod +x get_sshm0;
+# standard install
+./get_sshm0 --install;
+# installer help
+./get_sshm0 --help;
+        </code-input>
+      </div>
+      
+      <h2>How do I use it ?</h2>
+      <div class="row justify-content-between pa-answer">
+        <h3>add</h3>
+        <code-input># no thrill
+sshm0 add my-server 192.168.1.25 my-user
+
+# password auth
+sshm0 add my-server 192.168.1.25 my-user --auth password --password my-password
+
+# key auth
+sshm0 add my-server 192.168.1.25 my-user --auth key --key /path/to/my/key
+
+# use port other than 22
+sshm0 add my-server 192.168.1.25 my-user --port 42069
+        </code-input>
+        <h3>connect</h3>
+        <code-input># connect to my-server added previously
+sshm0 connect my-server
+
+# execute a command
+sshm0 connect my-server ls -la
+
+# cd a directory before REPL
+sshm0 connect my-server --cd /path/to/my/dir
+# cd a directory before executing
+sshm0 connect my-server --cd /path/to/my/dir ls -la
+
+# execute before REPL
+sshm0 connect my-server --exec-before "mkdir dummy_directory" ls -la
+        </code-input>
+      </div>
     </div>
     <div id="pa-cmdform" class="pa-tab d-none">
       
