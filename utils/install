@@ -204,7 +204,7 @@ trap on_interrupt INT;
 # @parseArger-end
 _dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 output="\nexport SSHM0_ROOT_DIR=\"$_dir\"
-source ${_dir}/sshm0.rc";
+source \"${_dir}/sshm0.rc\"";
 
 if [ "$_arg_comment" != "off" ]; then
 	output="\n# sshm0${output}";
@@ -212,7 +212,7 @@ fi
 
 for _file in "${_arg_shell_rc_file[@]}"; do
 	if [ -f "$_file" ]; then
-		if ! grep -q "sshm0" "$_file"; then
+		if ! grep -q "sshm0.rc" "$_file"; then
 			echo -e "$output" >> "$_file";
 			log "sshm0 installed in $_file" 1;
 		else

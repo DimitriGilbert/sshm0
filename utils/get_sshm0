@@ -308,18 +308,18 @@ else
 fi
 
 log "${ecmd[*]}" 1;
-"${ecmd[@]}"
+"${ecmd[@]}" || die "Download failed" 1
 
 if [ "$_arg_zip" == "on" ]; then
 	log "${zcmd[*]}" 1;
-	"${zcmd[@]}";
+	"${zcmd[@]}" || die "Extraction failed" 1;
 	log "${zcmd2[*]}" 1;
-	"${zcmd2[@]}";
+	"${zcmd2[@]}" || die "Move failed" 1;
 	rm "sshm0-${_arg_branch}.zip";
 fi
 
 log "${mcmd[*]}" 1;
-"${mcmd[@]}"
+"${mcmd[@]}" || die "chmod failed" 1
 
 if [ "$_arg_install" == "on" ] || [ "${#_arg_install_file[@]}" -gt 0 ]; then
 	icmd=("utils/install" --verbose 1);
@@ -331,9 +331,9 @@ if [ "$_arg_install" == "on" ] || [ "${#_arg_install_file[@]}" -gt 0 ]; then
 	log "${icmd[*]}" 1;
 
 	if [ "$_arg_install_directory" != "" ]; then
-		cd "${_arg_install_directory}";
+		cd "${_arg_install_directory}" || die "Cannot cd to install directory" 1;
 	else
-		cd sshm0;
+		cd sshm0 || die "Cannot cd to sshm0 directory" 1;
 	fi
 	"${icmd[@]}";
 	cd -;
