@@ -31,25 +31,31 @@ sshm0_get_plugin_list() {
 }
 
 sshm0_server_config_path() {
-  echo "$SSHM0_CONFIG_DIR/servers/$1";
+  if [[ ! "$1" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+    echo "Error: invalid server name '$1' — only alphanumeric, dots, hyphens, and underscores allowed" >&2
+    return 1
+  fi
+  echo "$SSHM0_CONFIG_DIR/servers/$1"
 }
 
 sshm0_server_exists() {
-  if [ ! -f "$(sshm0_server_config_path "$1")" ]; then
-    return 1;
+  local _path
+  _path="$(sshm0_server_config_path "$1")" || return 1
+  if [ ! -f "$_path" ]; then
+    return 1
   else
-    return 0;
+    return 0
   fi
 }
 
 sshm0_load_server() {
-  if sshm0_server_exists "$1"; then
-    set -a;
-    # shellcheck source=../server.dist
-    source "$(sshm0_server_config_path "$1")";
-    set +a;
-    return 0;
-  else
-    return 1;
+  local _path
+  _path="$(sshm0_server_config_path "$1")" || return 1
+  if [ ! -f "$_path" ]; then
+    return 1
   fi
+  set -a
+  source "$_path"
+  set +a
+  return 0
 }
