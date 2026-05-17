@@ -13,7 +13,7 @@ source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger opt password "user password for the server" --short p --alias pass --alias pwd
 # @parseArger opt key "ssh private key" --short i --complete-custom "/usr/bin/ls /home/didi/.ssh"
 # @parseArger opt auth "authentication type" --short a --one-of "" --one-of "key" --one-of "password"
-# @parseArger opt port "ssh port" --short p --default-value "22"
+# @parseArger opt port "ssh port" --short P --default-value "22"
 # @parseArger flag force "force overwrite if server exists" --short f
 # @parseArger flag connect "connect to server" --short c
 # @parseArger-declarations-end
@@ -79,7 +79,7 @@ print_help()
 	echo -e "	-p, --password|--pass|--pwd <password>: user password for the server"
 	echo -e "	-i, --key <key>: ssh private key"
 	echo -e "	-a, --auth <auth>: authentication type [one of '' 'key' 'password']"
-	echo -e "	-p, --port <port>: ssh port [default: ' 22 ']"
+	echo -e "	-P, --port <port>: ssh port [default: ' 22 ']"
 	echo -e "	-f|--force|--no-force: force overwrite if server exists"
 	echo -e "	-c|--connect|--no-connect: connect to server"
 	echo -e "Usage :
@@ -171,7 +171,7 @@ parse_commandline()
 				if [[ "${#_one_of_arg_auth[@]}" -gt 0 ]];then [[ "${_one_of_arg_auth[*]}" =~ (^|[[:space:]])"$_arg_auth"($|[[:space:]]) ]] || die "auth must be one of:  key password";fi
 				;;
 			
-			-p|--port)
+			-P|--port)
 				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
 				_arg_port="$2"
 				shift
@@ -179,8 +179,8 @@ parse_commandline()
 			--port=*)
 				_arg_port="${_key##--port=}"
 				;;
-			-p*)
-				_arg_port="${_key##-p}"
+			-P*)
+				_arg_port="${_key##-P}"
 				;;
 			
 			-f|--force)
