@@ -6,6 +6,8 @@ sshm0:
 - edit
 - plugin
 - remove
+- rename
+- show
 - --config-dir
 sshm0 list:
 sshm0 add:
@@ -55,6 +57,10 @@ sshm0 edit*--key:
 - $(dir="$HOME/.ssh"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
 sshm0 plugin:
 sshm0 remove:
+- $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
+sshm0 rename:
+- $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
+sshm0 show:
 - $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
 
 
