@@ -315,14 +315,10 @@ if [[ "${_arg_force}" == "on" ]];then
 fi
 
 if [ "$dowrite" -eq 0 ]; then
-	echo "sshm0_server_ip=$_arg_ip
-sshm0_server_user=$_arg_user
-sshm0_server_port=$_arg_port
-sshm0_server_auth=$_arg_auth
-sshm0_server_password=$_arg_password
-sshm0_server_key=$_arg_key
-sshm0_server_cd=
-sshm0_server_exec_before=()" > "$(sshm0_server_config_path "$_arg_name")";
+	printf 'sshm0_server_ip='\''%s'\''\nsshm0_server_user='\''%s'\''\nsshm0_server_port='\''%s'\''\nsshm0_server_auth='\''%s'\''\nsshm0_server_password='\''%s'\''\nsshm0_server_key='\''%s'\''\nsshm0_server_cd=\nsshm0_server_exec_before=()\n' \
+		"$_arg_ip" "$_arg_user" "$_arg_port" "$_arg_auth" "$_arg_password" "$_arg_key" \
+		> "$(sshm0_server_config_path "$_arg_name")"
+	chmod 600 "$(sshm0_server_config_path "$_arg_name")"
 	log "Writting to $(sshm0_server_config_path "$_arg_name")" 2;
 	log "Created server $_arg_name" 1;
 	if [ "$_arg_connect" == "on" ]; then
