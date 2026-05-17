@@ -27,16 +27,16 @@ sshm0 add:
 - -c
 
 sshm0 add*--key:
-- $(/usr/bin/ls $HOME/.ssh)
+- $(dir="$HOME/.ssh"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
 sshm0 connect:
-- $(/usr/bin/ls ${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers)
+- $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
 - --cd
 - --exec-before
 sshm0 cp:
 - <file>
 - <file>
 sshm0 edit:
-- $(/usr/bin/ls ${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers)
+- $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
 - --ip
 - --user
 - --password
@@ -52,10 +52,10 @@ sshm0 edit:
 
 
 sshm0 edit*--key:
-- $(/usr/bin/ls $HOME/.ssh)
+- $(dir="$HOME/.ssh"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
 sshm0 plugin:
 sshm0 remove:
-- $(/usr/bin/ls ${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers)
+- $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
 
 
 

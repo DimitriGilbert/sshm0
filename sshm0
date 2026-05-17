@@ -262,6 +262,11 @@ fi
 
 export SSHM0_CONFIG_DIR="$_arg_config_dir";
 
+if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
+    echo "Error: sshm0 requires Bash 4 or later (current: $BASH_VERSION)" >&2
+    exit 1
+fi
+
 if [ ! -d "$SSHM0_CONFIG_DIR" ] || [ ! -f "$SSHM0_CONFIG_DIR/config" ]; then
 	sshm0_install;
 fi

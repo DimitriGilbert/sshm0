@@ -266,7 +266,6 @@ if sshm0_load_server "$_server_name"; then
 		export SSH_PASSWORD="$sshm0_server_password"
 		export SSH_ASKPASS="$_tmpps";
 		export DISPLAY="YOURDOINGITWRONG";
-		coarg+=(-p);
   fi
 
 	coarg+=("$_src" "$_dest");

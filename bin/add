@@ -315,10 +315,19 @@ if [[ "${_arg_force}" == "on" ]];then
 fi
 
 if [ "$dowrite" -eq 0 ]; then
-	printf 'sshm0_server_ip='\''%s'\''\nsshm0_server_user='\''%s'\''\nsshm0_server_port='\''%s'\''\nsshm0_server_auth='\''%s'\''\nsshm0_server_password='\''%s'\''\nsshm0_server_key='\''%s'\''\nsshm0_server_cd=\nsshm0_server_exec_before=()\n' \
-		"$_arg_ip" "$_arg_user" "$_arg_port" "$_arg_auth" "$_arg_password" "$_arg_key" \
-		> "$(sshm0_server_config_path "$_arg_name")"
-	chmod 600 "$(sshm0_server_config_path "$_arg_name")"
+	_tmpcfg="$(mktemp)"
+	printf 'sshm0_server_ip=%s\nsshm0_server_user=%s\nsshm0_server_port=%s\nsshm0_server_auth=%s\nsshm0_server_password=%s\nsshm0_server_key=%s\nsshm0_server_cd=%s\nsshm0_server_exec_before=%s\n' \
+		"$(printf '%q' "$_arg_ip")" \
+		"$(printf '%q' "$_arg_user")" \
+		"$(printf '%q' "$_arg_port")" \
+		"$(printf '%q' "$_arg_auth")" \
+		"$(printf '%q' "$_arg_password")" \
+		"$(printf '%q' "$_arg_key")" \
+		"" \
+		"()" \
+		> "$_tmpcfg" || { rm -f "$_tmpcfg"; die "Failed to write server config" 1; }
+	chmod 600 "$_tmpcfg" || { rm -f "$_tmpcfg"; die "Failed to chmod server config" 1; }
+	mv "$_tmpcfg" "$(sshm0_server_config_path "$_arg_name")" || { rm -f "$_tmpcfg"; die "Failed to save server config" 1; }
 	log "Writting to $(sshm0_server_config_path "$_arg_name")" 2;
 	log "Created server $_arg_name" 1;
 	if [ "$_arg_connect" == "on" ]; then

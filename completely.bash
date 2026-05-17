@@ -29,27 +29,27 @@ _sshm0_completions() {
 
   case "$compline" in
     'edit'*'--key')
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(/usr/bin/ls $HOME/.ssh)")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="$HOME/.ssh"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)")" -- "$cur" )
       ;;
 
     'add'*'--key')
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(/usr/bin/ls $HOME/.ssh)")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="$HOME/.ssh"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)")" -- "$cur" )
       ;;
 
     'connect'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(/usr/bin/ls $HOME/.config/sshm0/servers) --cd --exec-before")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true) --cd --exec-before")" -- "$cur" )
       ;;
 
     'remove'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(/usr/bin/ls $HOME/.config/sshm0/servers)")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)")" -- "$cur" )
       ;;
 
     'edit'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(/usr/bin/ls $HOME/.config/sshm0/servers) --ip --user --password -p --key -i --auth --port --connect --no-connect -c")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true) --ip --user --password -p --key -i --auth --port --connect --no-connect -c")" -- "$cur" )
       ;;
 
     'add'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--password --pass --pwd -p --key -i --auth -a --port -p --force --no-force -f --connect --no-connect -c")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--password --pass --pwd -p --key -i --auth -a --port -P --force --no-force -f --connect --no-connect -c")" -- "$cur" )
       ;;
 
     'cp'*)
@@ -57,7 +57,7 @@ _sshm0_completions() {
       ;;
 
     *)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "list add connect cp edit plugin remove remove --config-dir")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "list add connect cp edit plugin remove --config-dir")" -- "$cur" )
       ;;
 
   esac
