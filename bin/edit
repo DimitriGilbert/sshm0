@@ -316,15 +316,23 @@ if sshm0_load_server "$_arg_name"; then
 	
 	if [ "$_arg_port" != "" ]; then
 		edArg+=("--port" "$_arg_port")
+	elif [ "$sshm0_server_port" != "" ]; then
+		edArg+=("--port" "$sshm0_server_port")
 	fi
 	if [ "$_arg_auth" != "" ]; then
 		edArg+=("--auth" "$_arg_auth")
+	elif [ "$sshm0_server_auth" != "" ]; then
+		edArg+=("--auth" "$sshm0_server_auth")
 	fi
 	if [ "$_arg_password" != "" ]; then
 		edArg+=("--password" "$_arg_password")
+	elif [ "$sshm0_server_password" != "" ]; then
+		edArg+=("--password" "$sshm0_server_password")
 	fi
 	if [ "$_arg_key" != "" ]; then
 		edArg+=("--key" "$_arg_key")
+	elif [ "$sshm0_server_key" != "" ]; then
+		edArg+=("--key" "$sshm0_server_key")
 	fi
 	if [ "$_arg_connect" != "off" ]; then
 		edArg+=("--connect")

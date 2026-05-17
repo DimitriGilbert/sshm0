@@ -262,7 +262,7 @@ fi
 
 export SSHM0_CONFIG_DIR="$_arg_config_dir";
 
-if [ ! -d "$SSHM0_CONFIG_DIR" ]; then
+if [ ! -d "$SSHM0_CONFIG_DIR" ] || [ ! -f "$SSHM0_CONFIG_DIR/config" ]; then
 	sshm0_install;
 fi
 
