@@ -171,13 +171,17 @@ sshm0 connect my-server --exec-before "mkdir dummy_directory" ls -la
               break;
           }
         }
-        document.getElementById('sshm0_result').innerHTML = out;
+        const _result = document.getElementById('sshm0_result');
+        if (_result) _result.textContent = out;
       }
-      document.getElementById('sshm0').addEventListener('submit', function (e) {
-        e.preventDefault();
-        e.target.checkValidity();
-        sshm0_parse(e.target);
-      });
+      const _form = document.getElementById('sshm0');
+      if (_form) {
+        _form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          e.target.checkValidity();
+          sshm0_parse(e.target);
+        });
+      }
     </script>
   </div>
   <script>

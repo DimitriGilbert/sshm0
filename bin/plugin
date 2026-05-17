@@ -214,8 +214,10 @@ trap on_interrupt INT;
 if plugin="$(sshm0_get_plugin "${_arg_plugin}")"; then
 	if [ -f "$plugin" ] || command -v "$(echo "$plugin" | head -n1 | cut -d " " -f1)" > /dev/null; then
 		"$plugin" "${_arg_leftovers[@]}";
+	else
+		echo "Error: plugin '$_arg_plugin' path '$plugin' is not a valid file or command" >&2
+		exit 1
 	fi
-	exit $?;
 else
 	echo "plugin $_arg_plugin not found, available plugins:";
 	sshm0_get_plugin_list "\t";
