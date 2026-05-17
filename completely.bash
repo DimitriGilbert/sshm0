@@ -64,8 +64,12 @@ _sshm0_completions() {
       while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)")" -- "$cur" )
       ;;
 
+    'export'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--output -o --merge")" -- "$cur" )
+      ;;
+
     *)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "list add connect cp edit plugin remove rename show --config-dir")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "list add connect cp edit export plugin remove rename show --config-dir")" -- "$cur" )
       ;;
 
   esac

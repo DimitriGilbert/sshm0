@@ -10,7 +10,7 @@ export SSHM0_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")";pwd -P);
 source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger-leftovers leftovers
 # @parseArger-declarations
-# @parseArger pos target "what to do" --subcommand-directory "bin" --subcommand-use-leftovers --subcommand --one-of "list" --one-of "add" --one-of "connect" --one-of "cp" --one-of "edit" --one-of "plugin" --one-of "rename" --one-of "show"
+# @parseArger pos target "what to do" --subcommand-directory "bin" --subcommand-use-leftovers --subcommand --one-of "list" --one-of "add" --one-of "connect" --one-of "cp" --one-of "edit" --one-of "export" --one-of "plugin" --one-of "rename" --one-of "show"
 # @parseArger opt config-dir "directory containing the configurations" --default-value "$HOME/.config/sshm0"
 # @parseArger-declarations-end
 
@@ -46,7 +46,7 @@ begins_with_short_option()
 _positionals=();
 _optional_positionals=();
 _arg_target="";
-_one_of_arg_target=("list" "add" "connect" "cp" "edit" "plugin" "remove" "rename" "show" );
+_one_of_arg_target=("list" "add" "connect" "cp" "edit" "export" "plugin" "remove" "rename" "show" );
 _arg_subcommand_arg="_arg_target";
 __subcommand=();
 # OPTIONALS ARGUMENTS
@@ -74,7 +74,7 @@ print_help()
 	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
 		_helpHasBeenPrinted=0;
 		echo -e "sshM0: A CLI ssh manager:"
-	echo -e "	target: what to do [one of 'list' 'add' 'connect' 'cp' 'edit' 'plugin' 'remove' 'rename' 'show']"
+	echo -e "	target: what to do [one of 'list' 'add' 'connect' 'cp' 'edit' 'export' 'plugin' 'remove' 'rename' 'show']"
 	echo -e "	--config-dir <config-dir>: directory containing the configurations [default: ' $HOME/.config/sshm0 ']"
 	echo -e "Usage :
 	$0 <target> [--config-dir <value>]";
