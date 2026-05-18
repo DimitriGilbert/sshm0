@@ -46,6 +46,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
+        <script src="https://chemin.dbuild.dev/script.js" data-id="7040d34e-b41f-4f20-88d1-b86ac93266c4" data-utcoffset="2" data-server="https://chemin.dbuild.dev" defer />
       </head>
       <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)]">
         <Header />
