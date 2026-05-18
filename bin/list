@@ -10,6 +10,7 @@ source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger opt tag "filter by tag" --short t
 # @parseArger opt filter "filter by name pattern" --short f
 # @parseArger flag long "show extended info" --short l
+# @parseArger flag recent "show recently connected servers first" --short r
 # @parseArger-declarations-end
 
 # @parseArger-utils
@@ -48,6 +49,7 @@ _arg_tag=
 _arg_filter=
 # FLAGS
 _arg_long="off"
+_arg_recent="off"
 # NESTED
 _verbose_level="0";
 
@@ -63,8 +65,9 @@ print_help()
 	echo -e "	-t, --tag <tag>: filter by tag"
 	echo -e "	-f, --filter <filter>: filter by name pattern"
 	echo -e "	-l|--long|--no-long: show extended info"
+	echo -e "	-r|--recent|--no-recent: show recently connected servers first"
 	echo -e "Usage :
-	$0 [--tag <value>] [--filter <value>] [--[no-]long]";
+	$0 [--tag <value>] [--filter <value>] [--[no-]long] [--[no-]recent]";
 	fi
 
 }
@@ -131,6 +134,12 @@ parse_commandline()
 				_arg_filter="${_key##-f}"
 				;;
 			
+			-r|--recent)
+				_arg_recent="on"
+				;;
+			--no-recent)
+				_arg_recent="off"
+				;;
 			-l|--long)
 				_arg_long="on"
 				;;
@@ -238,6 +247,7 @@ trap on_interrupt INT;
 # print_debug "$@"
 # @parseArger-end
 
+_matching=()
 for _server_config in "$SSHM0_CONFIG_DIR/servers/"*; do
 	[ -e "$_server_config" ] || continue
 	_name="$(basename "$_server_config")"
@@ -263,7 +273,34 @@ for _server_config in "$SSHM0_CONFIG_DIR/servers/"*; do
 		[ "$_found_tag" -eq 1 ] || continue
 	fi
 
+	_matching+=("$_name")
+done
+
+if [ "$_arg_recent" = "on" ]; then
+	declare -A _last_seen
+	if [ -f "$SSHM0_CONFIG_DIR/history" ]; then
+		while IFS=':' read -r _ts _srv; do
+			_last_seen["$_srv"]="$_ts"
+		done < "$SSHM0_CONFIG_DIR/history"
+	fi
+	_sorted=$(
+		for _name in "${_matching[@]}"; do
+			printf '%s %s\n' "${_last_seen[$_name]:-0}" "$_name"
+		done | sort -rn
+	)
+	_matching=()
+	while read -r _ _name; do
+		_matching+=("$_name")
+	done <<< "$_sorted"
+fi
+
+for _name in "${_matching[@]}"; do
 	if [ "$_arg_long" = "on" ]; then
+		sshm0_server_ip=""
+		sshm0_server_user=""
+		sshm0_server_tags=()
+		# shellcheck source=../server.dist
+		source "$SSHM0_CONFIG_DIR/servers/$_name"
 		_tags_str=""
 		if [ ${#sshm0_server_tags[@]} -gt 0 ]; then
 			_tags_str="$(IFS=,; echo "${sshm0_server_tags[*]}")"

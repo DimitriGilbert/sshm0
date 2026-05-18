@@ -37,7 +37,7 @@ _sshm0_completions() {
       ;;
 
     'list'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--tag -t --filter -f --long -l")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--tag -t --filter -f --long -l --recent -r")" -- "$cur" )
       ;;
 
     'connect'*)

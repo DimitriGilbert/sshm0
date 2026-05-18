@@ -17,6 +17,8 @@ sshm0 list:
 - -f
 - --long
 - -l
+- --recent
+- -r
 sshm0 add:
 - --password
 - --pass

@@ -320,6 +320,27 @@ trap on_interrupt INT;
 
 if sshm0_load_server "$_arg_name"; then
 #shellcheck source=../server.dist
+	if [ -z "$_arg_ip" ] && [ -z "$_arg_user" ] && [ -z "$_arg_password" ] && [ -z "$_arg_key" ] && [ -z "$_arg_auth" ] && [ -z "$_arg_port" ] && [ -z "$_arg_tag" ]; then
+		echo "Editing server: $_arg_name (current values in brackets)"
+		read -rp "IP address [$sshm0_server_ip]: " _arg_ip
+		_arg_ip="${_arg_ip:-$sshm0_server_ip}"
+		read -rp "User [$sshm0_server_user]: " _arg_user
+		_arg_user="${_arg_user:-$sshm0_server_user}"
+		read -rp "Auth method (key/password) [$sshm0_server_auth]: " _arg_auth
+		_arg_auth="${_arg_auth:-$sshm0_server_auth}"
+		if [ "$_arg_auth" = "key" ]; then
+			read -rp "Key path [$sshm0_server_key]: " _arg_key
+			_arg_key="${_arg_key:-$sshm0_server_key}"
+		else
+			read -rp "Password [*****]: " _arg_password
+		fi
+		read -rp "Port [$sshm0_server_port]: " _arg_port
+		_arg_port="${_arg_port:-$sshm0_server_port}"
+		read -rp "Tags (comma-separated) [$(IFS=,; echo "${sshm0_server_tags[*]}")]: " _arg_tag
+		_current_tags="$(IFS=,; echo "${sshm0_server_tags[*]}")"
+		_arg_tag="${_arg_tag:-$_current_tags}"
+		echo ""
+	fi
 	if [ "$_arg_ip" != "" ]; then
 		sshm0_server_ip="$_arg_ip"
 	fi

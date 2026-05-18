@@ -260,7 +260,7 @@ handle_passed_args_count()
 	if [ "${_positionals_count}" -gt 3 ] && [ "$_helpHasBeenPrinted" == "1" ];then
 		_PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect at most 3 (namely: $_required_args_string), but got ${_positionals_count} (the last one was: '${_last_positional}').\n\t${_positionals[*]}" 1
 	fi
-	if [ "${_positionals_count}" -lt 3 ] && [ "$_helpHasBeenPrinted" == "1" ];then
+	if [ "${_positionals_count}" -lt 0 ] && [ "$_helpHasBeenPrinted" == "1" ];then
 		_PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 3 (namely: $_required_args_string), but got only ${_positionals_count}.
 	${_positionals[*]}" 1;
 	fi
@@ -321,6 +321,24 @@ trap on_interrupt INT;
 # @parseArger-parsing-end
 # print_debug "$@"
 # @parseArger-end
+
+if [ -z "$_arg_name" ] && [ -z "$_arg_ip" ]; then
+	read -rp "Server name: " _arg_name
+	read -rp "IP address: " _arg_ip
+	read -rp "User: " _arg_user
+	read -rp "Auth method (key/password) [key]: " _arg_auth
+	_arg_auth="${_arg_auth:-key}"
+	if [ "$_arg_auth" = "key" ]; then
+		read -rp "Key path [$HOME/.ssh/id_rsa]: " _arg_key
+		_arg_key="${_arg_key:-$HOME/.ssh/id_rsa}"
+	else
+		read -rp "Password: " _arg_password
+	fi
+	read -rp "Port [22]: " _arg_port
+	_arg_port="${_arg_port:-22}"
+	read -rp "Tags (comma-separated): " _arg_tag
+	echo ""
+fi
 
 dowrite=0;
 if [ -f "$(sshm0_server_config_path "$_arg_name")" ]; then

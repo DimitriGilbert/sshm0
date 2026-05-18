@@ -59,3 +59,10 @@ sshm0_load_server() {
   set +a
   return 0
 }
+
+sshm0_record_connection() {
+  local _history_file="$SSHM0_CONFIG_DIR/history"
+  local _timestamp
+  _timestamp="$(date +%s)"
+  echo "${_timestamp}:$1" >> "$_history_file"
+}
