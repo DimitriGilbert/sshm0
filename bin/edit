@@ -15,6 +15,7 @@ source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger opt auth "authentication type" --one-of "" --one-of "key" --one-of "password"
 # @parseArger opt port "ssh port"
 # @parseArger flag connect "connect to server" --short c
+# @parseArger opt tag "comma-separated tags" --short t
 # @parseArger-declarations-end
 
 # @parseArger-utils
@@ -57,6 +58,7 @@ _arg_key=
 _arg_auth=
 _one_of_arg_auth=("" "key" "password" );
 _arg_port=
+_arg_tag=
 # FLAGS
 _arg_connect="off"
 # NESTED
@@ -79,8 +81,9 @@ print_help()
 	echo -e "	--auth <auth>: authentication type [one of '' 'key' 'password']"
 	echo -e "	--port <port>: ssh port"
 	echo -e "	-c|--connect|--no-connect: connect to server"
+	echo -e "	-t, --tag <tag>: comma-separated tags"
 	echo -e "Usage :
-	$0 <name> [--ip <value>] [--user <value>] [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--[no-]connect]";
+	$0 <name> [--ip <value>] [--user <value>] [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--tag <value>] [--[no-]connect]";
 	fi
 
 }
@@ -185,6 +188,18 @@ parse_commandline()
 				_arg_port="${_key##--port=}"
 				;;
 			
+			-t|--tag)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_tag="$2"
+				shift
+				;;
+			--tag=*)
+				_arg_tag="${_key##--tag=}"
+				;;
+			-t*)
+				_arg_tag="${_key##-t}"
+				;;
+			
 			-c|--connect)
 				_arg_connect="on"
 				;;
@@ -275,6 +290,7 @@ print_debug()
 	echo -e "	auth: ${_arg_auth}";
 	echo -e "	port: ${_arg_port}";
 	echo -e "	connect: ${_arg_connect}";
+	echo -e "	tag: ${_arg_tag}";
 
 }
 
@@ -333,6 +349,9 @@ if sshm0_load_server "$_arg_name"; then
 		edArg+=("--key" "$_arg_key")
 	elif [ "$sshm0_server_key" != "" ]; then
 		edArg+=("--key" "$sshm0_server_key")
+	fi
+	if [ "$_arg_tag" != "" ]; then
+		edArg+=("--tag" "$_arg_tag")
 	fi
 	if [ "$_arg_connect" != "off" ]; then
 		edArg+=("--connect")

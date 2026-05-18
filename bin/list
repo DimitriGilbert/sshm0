@@ -1,5 +1,275 @@
 #!/bin/bash
 
-ls "$SSHM0_CONFIG_DIR/servers" | while read -r server; do
-  echo "$server";
+# @parseArger-begin
+# @parseArger-help "list servers" --option "help" --short-option "h"
+# @parseArger-version "0.3.1" --option "version" --short-option "v"
+# @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
+# @parseArger-source $SSHM0_ROOT_DIR/bin/utils
+source "$SSHM0_ROOT_DIR/bin/utils";
+# @parseArger-declarations
+# @parseArger opt tag "filter by tag" --short t
+# @parseArger opt filter "filter by name pattern" --short f
+# @parseArger flag long "show extended info" --short l
+# @parseArger-declarations-end
+
+# @parseArger-utils
+_helpHasBeenPrinted=1;
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)";
+# @parseArger-utils-end
+
+# @parseArger-parsing
+
+__cli_arg_count=$#;
+
+die()
+{
+	local _ret=1
+    if [[ -n "$2" ]] && [[ "$2" =~ ^[0-9]+$ ]]; then
+   	_ret="$2"
+    fi
+	test "${_PRINT_HELP:-no}" = yes && print_help >&2
+	log "$1" -3 >&2
+	exit "${_ret}"
+}
+
+
+begins_with_short_option()
+{
+	local first_option all_short_options=''
+	first_option="${1:0:1}"
+	test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
+}
+
+# POSITIONALS ARGUMENTS
+_positionals=();
+_optional_positionals=();
+# OPTIONALS ARGUMENTS
+_arg_tag=
+_arg_filter=
+# FLAGS
+_arg_long="off"
+# NESTED
+_verbose_level="0";
+
+
+
+print_help()
+{
+	_triggerSCHelp=1;
+
+	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
+		_helpHasBeenPrinted=0;
+		echo -e "list servers:"
+	echo -e "	-t, --tag <tag>: filter by tag"
+	echo -e "	-f, --filter <filter>: filter by name pattern"
+	echo -e "	-l|--long|--no-long: show extended info"
+	echo -e "Usage :
+	$0 [--tag <value>] [--filter <value>] [--[no-]long]";
+	fi
+
+}
+
+log() {
+	local _arg_msg="${1}";
+	local _arg_level="${2:-0}";
+	if [ "${_arg_level}" -le "${_verbose_level}" ]; then
+		case "$_arg_level" in
+			-3)
+				_arg_COLOR="\033[0;31m";
+				;;
+			-2)
+				_arg_COLOR="\033[0;33m";
+				;;
+			-1)
+				_arg_COLOR="\033[1;33m";
+				;;
+			1)
+				_arg_COLOR="\033[0;32m";
+				;;
+			2)
+				_arg_COLOR="\033[1;36m";
+				;;
+			3)
+				_arg_COLOR="\033[0;36m";
+				;;
+			*)
+				_arg_COLOR="\033[0m";
+				;;
+		esac
+		echo -e "${_arg_COLOR}${_arg_msg}\033[0m";
+	fi
+}
+
+parse_commandline()
+{
+	_positionals_count=0
+	while test $# -gt 0
+	do
+		_key="$1"
+		case "$_key" in
+			-t|--tag)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_tag="$2"
+				shift
+				;;
+			--tag=*)
+				_arg_tag="${_key##--tag=}"
+				;;
+			-t*)
+				_arg_tag="${_key##-t}"
+				;;
+			
+			-f|--filter)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_filter="$2"
+				shift
+				;;
+			--filter=*)
+				_arg_filter="${_key##--filter=}"
+				;;
+			-f*)
+				_arg_filter="${_key##-f}"
+				;;
+			
+			-l|--long)
+				_arg_long="on"
+				;;
+			--no-long)
+				_arg_long="off"
+				;;
+			-h|--help)
+				print_help;
+				exit 0;
+				;;
+			-h*)
+				print_help;
+				exit 0;
+				;;
+			-v|--version)
+				print_version;
+				exit 0;
+				;;
+			-v*)
+				print_version;
+				exit 0;
+				;;
+			--verbose)
+					if [ $# -lt 2 ];then
+						_verbose_level="$((_verbose_level + 1))";
+					else
+						_verbose_level="$2";
+						shift;
+					fi
+					;;
+				--quiet)
+					if [ $# -lt 2 ];then
+						_verbose_level="$((_verbose_level - 1))";
+					else
+						_verbose_level="-$2";
+						shift;
+					fi
+					;;
+				
+				*)
+				_last_positional="$1"
+				_positionals+=("$_last_positional")
+				_positionals_count=$((_positionals_count + 1))
+				;;
+		esac
+		shift
+	done
+}
+
+
+handle_passed_args_count()
+{
+	local _required_args_string=""
+	if [ "${_positionals_count}" -gt 0 ] && [ "$_helpHasBeenPrinted" == "1" ];then
+		_PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect 0, but got ${_positionals_count} (the last one was: '${_last_positional}').\n\t${_positionals[*]}" 1
+	fi
+}
+
+
+assign_positional_args()
+{
+	local _positional_name _shift_for=$1;
+	_positional_names=""
+	shift "$_shift_for"
+	for _positional_name in ${_positional_names};do
+		test $# -gt 0 || break;
+		eval "if [ \"\$_one_of${_positional_name}\" != \"\" ];then [[ \"\${_one_of${_positional_name}[*]}\" =~ \"\${1}\" ]];fi" || die "${_positional_name} must be one of: $(eval "echo \"\${_one_of${_positional_name}[*]}\"")" 1;
+		eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an ParseArger bug." 1;
+		shift;
+	done
+}
+
+print_debug()
+{
+	print_help
+	# shellcheck disable=SC2145
+	echo "DEBUG: $0 $@";
+	
+	echo -e "	tag: ${_arg_tag}";
+	echo -e "	filter: ${_arg_filter}";
+	echo -e "	long: ${_arg_long}";
+
+}
+
+
+print_version()
+{
+	echo "0.3.1";
+}
+
+
+on_interrupt() {
+	die Process aborted! 130;
+}
+
+
+parse_commandline "$@";
+handle_passed_args_count;
+assign_positional_args 1 "${_positionals[@]}";
+trap on_interrupt INT;
+
+
+
+# @parseArger-parsing-end
+# print_debug "$@"
+# @parseArger-end
+
+for _server_config in "$SSHM0_CONFIG_DIR/servers/"*; do
+	[ -e "$_server_config" ] || continue
+	_name="$(basename "$_server_config")"
+
+	sshm0_server_ip=""
+	sshm0_server_user=""
+	sshm0_server_tags=()
+	# shellcheck source=../server.dist
+	source "$_server_config"
+
+	if [ -n "$_arg_filter" ]; then
+		[[ "${_name,,}" == *"${_arg_filter,,}"* ]] || continue
+	fi
+
+	if [ -n "$_arg_tag" ]; then
+		_found_tag=0
+		for _t in "${sshm0_server_tags[@]}"; do
+			if [ "$_t" = "$_arg_tag" ]; then
+				_found_tag=1
+				break
+			fi
+		done
+		[ "$_found_tag" -eq 1 ] || continue
+	fi
+
+	if [ "$_arg_long" = "on" ]; then
+		_tags_str=""
+		if [ ${#sshm0_server_tags[@]} -gt 0 ]; then
+			_tags_str="$(IFS=,; echo "${sshm0_server_tags[*]}")"
+		fi
+		printf '%-20s %-15s %-10s [%s]\n' "$_name" "$sshm0_server_ip" "$sshm0_server_user" "$_tags_str"
+	else
+		echo "$_name"
+	fi
 done

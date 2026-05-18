@@ -11,6 +11,12 @@ sshm0:
 - export
 - --config-dir
 sshm0 list:
+- --tag
+- -t
+- --filter
+- -f
+- --long
+- -l
 sshm0 add:
 - --password
 - --pass
@@ -28,6 +34,8 @@ sshm0 add:
 - --connect
 - --no-connect
 - -c
+- --tag
+- -t
 
 sshm0 add*--key:
 - $(dir="$HOME/.ssh"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
@@ -51,8 +59,8 @@ sshm0 edit:
 - --connect
 - --no-connect
 - -c
-
-
+- --tag
+- -t
 
 sshm0 edit*--key:
 - $(dir="$HOME/.ssh"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)

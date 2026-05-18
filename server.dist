@@ -6,3 +6,4 @@ sshm0_server_password=
 sshm0_server_key=
 sshm0_server_cd=
 sshm0_server_exec_before=()
+sshm0_server_tags=()

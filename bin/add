@@ -16,6 +16,7 @@ source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger opt port "ssh port" --short P --default-value "22"
 # @parseArger flag force "force overwrite if server exists" --short f
 # @parseArger flag connect "connect to server" --short c
+# @parseArger opt tag "comma-separated tags" --short t
 # @parseArger-declarations-end
 
 # @parseArger-utils
@@ -61,6 +62,7 @@ _arg_port="22"
 # FLAGS
 _arg_force="off"
 _arg_connect="off"
+_arg_tag=
 # NESTED
 _verbose_level="0";
 
@@ -82,8 +84,9 @@ print_help()
 	echo -e "	-P, --port <port>: ssh port [default: ' 22 ']"
 	echo -e "	-f|--force|--no-force: force overwrite if server exists"
 	echo -e "	-c|--connect|--no-connect: connect to server"
+	echo -e "	-t, --tag <tag>: comma-separated tags"
 	echo -e "Usage :
-	$0 <name> <ip> <user> [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--[no-]force] [--[no-]connect]";
+	$0 <name> <ip> <user> [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--tag <value>] [--[no-]force] [--[no-]connect]";
 	fi
 
 }
@@ -183,6 +186,18 @@ parse_commandline()
 				_arg_port="${_key##-P}"
 				;;
 			
+			-t|--tag)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_tag="$2"
+				shift
+				;;
+			--tag=*)
+				_arg_tag="${_key##--tag=}"
+				;;
+			-t*)
+				_arg_tag="${_key##-t}"
+				;;
+			
 			-f|--force)
 				_arg_force="on"
 				;;
@@ -280,6 +295,7 @@ print_debug()
 	echo -e "	port: ${_arg_port}";
 	echo -e "	force: ${_arg_force}";
 	echo -e "	connect: ${_arg_connect}";
+	echo -e "	tag: ${_arg_tag}";
 
 }
 
@@ -326,6 +342,17 @@ if [ "$dowrite" -eq 0 ]; then
 		"" \
 		"()" \
 		> "$_tmpcfg" || { rm -f "$_tmpcfg"; die "Failed to write server config" 1; }
+	_tags_value=""
+	if [ -n "$_arg_tag" ]; then
+		IFS=',' read -ra _tag_parts <<< "$_arg_tag"
+		for _tp in "${_tag_parts[@]}"; do
+			_tp="${_tp# }"; _tp="${_tp% }"
+			[ -z "$_tp" ] && continue
+			[ -n "$_tags_value" ] && _tags_value+=" "
+			_tags_value+="$(printf '%q' "$_tp")"
+		done
+	fi
+	printf 'sshm0_server_tags=(%s)\n' "$_tags_value" >> "$_tmpcfg"
 	chmod 600 "$_tmpcfg" || { rm -f "$_tmpcfg"; die "Failed to chmod server config" 1; }
 	mv "$_tmpcfg" "$(sshm0_server_config_path "$_arg_name")" || { rm -f "$_tmpcfg"; die "Failed to save server config" 1; }
 	log "Writting to $(sshm0_server_config_path "$_arg_name")" 2;
