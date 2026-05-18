@@ -1,0 +1,259 @@
+#!/bin/bash
+
+# @parseArger-begin
+# @parseArger-help "run self-test checks on the sshm0 environment" --option "help" --short-option "h"
+# @parseArger-version "0.3.1" --option "version" --short-option "v"
+# @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
+# @parseArger-source $SSHM0_ROOT_DIR/bin/utils
+source "$SSHM0_ROOT_DIR/bin/utils";
+# @parseArger-declarations
+# @parseArger-declarations-end
+
+# @parseArger-utils
+_helpHasBeenPrinted=1;
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)";
+# @parseArger-utils-end
+
+# @parseArger-parsing
+
+__cli_arg_count=$#;
+
+die()
+{
+	local _ret=1
+    if [[ -n "$2" ]] && [[ "$2" =~ ^[0-9]+$ ]]; then
+   	_ret="$2"
+    fi
+	test "${_PRINT_HELP:-no}" = yes && print_help >&2
+	log "$1" -3 >&2
+	exit "${_ret}"
+}
+
+
+begins_with_short_option()
+{
+	local first_option all_short_options=''
+	first_option="${1:0:1}"
+	test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
+}
+
+# POSITIONALS ARGUMENTS
+_positionals=();
+_optional_positionals=();
+# OPTIONALS ARGUMENTS
+# FLAGS
+# NESTED
+_verbose_level="0";
+
+
+
+print_help()
+{
+	_triggerSCHelp=1;
+
+	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
+		_helpHasBeenPrinted=0;
+		echo -e "run self-test checks on the sshm0 environment:"
+	echo -e "Usage :
+	$0";
+	fi
+
+}
+
+log() {
+	local _arg_msg="${1}";
+	local _arg_level="${2:-0}";
+	if [ "${_arg_level}" -le "${_verbose_level}" ]; then
+		case "$_arg_level" in
+			-3)
+				_arg_COLOR="\033[0;31m";
+				;;
+			-2)
+				_arg_COLOR="\033[0;33m";
+				;;
+			-1)
+				_arg_COLOR="\033[1;33m";
+				;;
+			1)
+				_arg_COLOR="\033[0;32m";
+				;;
+			2)
+				_arg_COLOR="\033[1;36m";
+				;;
+			3)
+				_arg_COLOR="\033[0;36m";
+				;;
+			*)
+				_arg_COLOR="\033[0m";
+				;;
+		esac
+		echo -e "${_arg_COLOR}${_arg_msg}\033[0m";
+	fi
+}
+
+parse_commandline()
+{
+	_positionals_count=0
+	while test $# -gt 0
+	do
+		_key="$1"
+		case "$_key" in
+			-h|--help)
+				print_help;
+				exit 0;
+				;;
+			-h*)
+				print_help;
+				exit 0;
+				;;
+			-v|--version)
+				print_version;
+				exit 0;
+				;;
+			-v*)
+				print_version;
+				exit 0;
+				;;
+			--verbose)
+				if [ $# -lt 2 ];then
+					_verbose_level="$((_verbose_level + 1))";
+				else
+					_verbose_level="$2";
+					shift;
+				fi
+				;;
+			--quiet)
+				if [ $# -lt 2 ];then
+					_verbose_level="$((_verbose_level - 1))";
+				else
+					_verbose_level="-$2";
+					shift;
+				fi
+				;;
+			
+			*)
+			_last_positional="$1"
+			_positionals+=("$_last_positional")
+			_positionals_count=$((_positionals_count + 1))
+			;;
+		esac
+		shift
+	done
+}
+
+
+handle_passed_args_count()
+{
+	if [ "${_positionals_count}" -gt 0 ];then
+		_PRINT_HELP=yes die "FATAL ERROR: This command takes no positional arguments, but got ${_positionals_count} (the last one was: '${_last_positional}').\n\t${_positionals[*]}" 1
+	fi
+}
+
+
+print_version()
+{
+	echo "0.3.1";
+}
+
+
+on_interrupt() {
+	die Process aborted! 130;
+}
+
+
+parse_commandline "$@";
+handle_passed_args_count;
+trap on_interrupt INT;
+
+
+
+# @parseArger-parsing-end
+# print_debug "$@"
+# @parseArger-end
+
+# --- Doctor checks ---
+
+_fail_count=0
+
+check_ok() {
+	printf "  %-26s [OK]   %s\n" "$1" "$2"
+}
+
+check_fail() {
+	printf "  %-26s [FAIL] %s\n" "$1" "$2"
+	_fail_count=$((_fail_count + 1))
+}
+
+echo "Checking sshm0 environment..."
+echo ""
+
+# 1. Bash version
+_bash_ver="${BASH_VERSINFO[0]:-0}"
+if [ "$_bash_ver" -ge 4 ]; then
+	check_ok "Bash version (4+):" "${BASH_VERSINFO[0]}.${BASH_VERSINFO[1]}.${BASH_VERSINFO[2]}"
+else
+	check_fail "Bash version (4+):" "${BASH_VERSION} — Bash 4+ required"
+fi
+
+# 2. Config directory
+if [ -d "$SSHM0_CONFIG_DIR" ]; then
+	check_ok "Config directory:" "$SSHM0_CONFIG_DIR"
+else
+	check_fail "Config directory:" "$SSHM0_CONFIG_DIR — not found"
+fi
+
+# 3. Config file
+if [ -f "$SSHM0_CONFIG_DIR/config" ]; then
+	check_ok "Config file:" "present"
+else
+	check_fail "Config file:" "$SSHM0_CONFIG_DIR/config — not found"
+fi
+
+# 4. Servers directory
+if [ -d "$SSHM0_CONFIG_DIR/servers" ]; then
+	check_ok "Servers directory:" "$SSHM0_CONFIG_DIR/servers"
+else
+	check_fail "Servers directory:" "$SSHM0_CONFIG_DIR/servers — not found"
+fi
+
+# 5. Required tools
+_missing_tools=()
+for _tool in ssh scp setsid mktemp; do
+	if ! command -v "$_tool" >/dev/null 2>&1; then
+		_missing_tools+=("$_tool")
+	fi
+done
+
+if [ ${#_missing_tools[@]} -eq 0 ]; then
+	check_ok "Required tools:" "ssh, scp, setsid, mktemp"
+else
+	check_fail "Required tools:" "missing: ${_missing_tools[*]}"
+fi
+
+# 6. Server count
+_server_count=0
+if [ -d "$SSHM0_CONFIG_DIR/servers" ]; then
+	# Count only files (not directories) in servers/
+	_server_count=$(find "$SSHM0_CONFIG_DIR/servers" -maxdepth 1 -type f 2>/dev/null | wc -l | tr -d ' ')
+fi
+
+if [ "$_server_count" -gt 0 ]; then
+	check_ok "Server configs:" "$_server_count server$([ "$_server_count" -ne 1 ] && echo 's')"
+else
+	# Not a hard failure — just informational; but per spec we still report [FAIL]
+	# if zero configs exist (environment not set up with any servers)
+	if [ -d "$SSHM0_CONFIG_DIR/servers" ]; then
+		check_fail "Server configs:" "0 servers — add one with: sshm0 add"
+	else
+		check_fail "Server configs:" "servers directory missing"
+	fi
+fi
+
+echo ""
+if [ "$_fail_count" -eq 0 ]; then
+	echo "All checks passed."
+	exit 0
+else
+	echo "$_fail_count check$([ "$_fail_count" -ne 1 ] && echo 's') failed."
+	exit 1
+fi

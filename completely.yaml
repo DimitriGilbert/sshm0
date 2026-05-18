@@ -9,6 +9,8 @@ sshm0:
 - rename
 - show
 - export
+- ping
+- doctor
 - --config-dir
 sshm0 list:
 - --tag
@@ -77,6 +79,9 @@ sshm0 rename:
 - $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
 sshm0 show:
 - $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
+sshm0 ping:
+- $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
+sshm0 doctor:
 
 
 
