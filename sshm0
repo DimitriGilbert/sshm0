@@ -274,6 +274,8 @@ fi
 # shellcheck source=config.dist
 source "$SSHM0_CONFIG_DIR/config";
 
+sshm0_migrate;
+
 log "subcommand :" 3;
 log "\t\t${__subcommand[*]}" 3;
 

@@ -9,6 +9,31 @@ sshm0_install() {
   fi
 }
 
+sshm0_migrate() {
+    local _config="$SSHM0_CONFIG_DIR/config"
+    if [ ! -f "$_config" ]; then
+        return 0
+    fi
+
+    source "$_config"
+
+    if [ "${sshm0_config_version:-0}" -ge 2 ]; then
+        return 0
+    fi
+
+    log "Migrating config to version 2..." 1
+
+    if ! grep -q "sshm0_config_version" "$_config"; then
+        printf 'sshm0_config_version=2\n' | cat - "$_config" > "$_config.tmp" && mv "$_config.tmp" "$_config"
+    fi
+
+    if ! grep -q "declare -A" "$_config"; then
+        sed -i 's/declare -a/declare -A/' "$_config"
+    fi
+
+    log "Migration complete." 1
+}
+
 sshm0_get_plugin() {
   # shellcheck source=../config.dist
   source "$SSHM0_CONFIG_DIR/config";

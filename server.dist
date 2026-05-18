@@ -1,3 +1,4 @@
+# sshm0 server config format v2
 sshm0_server_ip=
 sshm0_server_user=
 sshm0_server_port=22

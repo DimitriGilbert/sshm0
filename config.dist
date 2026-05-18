@@ -1,3 +1,4 @@
+sshm0_config_version=2
 declare -A sshm0_plugins
 # to declare a plugin
 # sshm0_plugin["plugin_name"]="/path/to/plugin/script"

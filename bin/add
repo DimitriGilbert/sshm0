@@ -350,6 +350,7 @@ fi
 
 if [ "$dowrite" -eq 0 ]; then
 	_tmpcfg="$(mktemp)"
+	printf '# sshm0 server config\n' > "$_tmpcfg"
 	printf 'sshm0_server_ip=%s\nsshm0_server_user=%s\nsshm0_server_port=%s\nsshm0_server_auth=%s\nsshm0_server_password=%s\nsshm0_server_key=%s\nsshm0_server_cd=%s\nsshm0_server_exec_before=%s\n' \
 		"$(printf '%q' "$_arg_ip")" \
 		"$(printf '%q' "$_arg_user")" \
@@ -359,7 +360,7 @@ if [ "$dowrite" -eq 0 ]; then
 		"$(printf '%q' "$_arg_key")" \
 		"" \
 		"()" \
-		> "$_tmpcfg" || { rm -f "$_tmpcfg"; die "Failed to write server config" 1; }
+		>> "$_tmpcfg" || { rm -f "$_tmpcfg"; die "Failed to write server config" 1; }
 	_tags_value=""
 	if [ -n "$_arg_tag" ]; then
 		IFS=',' read -ra _tag_parts <<< "$_arg_tag"
