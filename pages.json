@@ -1,0 +1,15 @@
+{
+  "pages": [
+    {
+      "path": "/"
+    },
+    {
+      "path": "/about"
+    },
+    {
+      "path": "/docs"
+    }
+  ],
+  "host": "https://sshm0.debuild.dev",
+  "lastBuilt": "2026-05-18T09:41:05.793Z"
+}
