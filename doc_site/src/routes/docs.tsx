@@ -45,11 +45,11 @@ const cpDemo: CommandEntry[] = [
 function Docs() {
   return (
     <Layout className="pt-20">
-      <div className="mx-auto flex max-w-7xl gap-8">
+      <div className="mx-auto flex max-w-[1440px] gap-8">
         <SidebarNav />
 
         <div className="min-w-0 flex-1">
-          <div className="prose prose-neutral max-w-none">
+          <div className="prose prose-neutral max-w-none [&_p]:text-[var(--sea-ink)] [&_li]:text-[var(--sea-ink)] [&_td]:text-[var(--sea-ink)] [&_th]:text-[var(--sea-ink)]">
             {/* ── Installation ─────────────────────────────────────── */}
             <CommandSection id="installation" title="Installation">
               <p>

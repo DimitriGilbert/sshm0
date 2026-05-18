@@ -22,7 +22,7 @@ export default function SidebarNav() {
   return (
     <nav
       aria-label="Documentation sections"
-      className="hidden lg:block w-52 shrink-0"
+      className="hidden lg:block w-56 shrink-0"
     >
       <ol className="sticky top-20 list-none space-y-1">
         {sections.map(({ id, label }) => (

@@ -19,9 +19,8 @@ export const Route = createFileRoute('/about')({
 function About() {
   return (
     <Layout className="py-12">
-      <section className="island-shell mx-auto max-w-3xl rounded-2xl p-6 sm:p-8">
-        <p className="island-kicker mb-2">About</p>
-        <h1 className="display-title mb-6 text-4xl font-bold text-[var(--sea-ink)] sm:text-5xl">
+      <section className="mx-auto max-w-4xl">
+        <h1 className="display-title mb-8 text-4xl font-bold text-[var(--sea-ink)] sm:text-5xl">
           One command. One file per server.
         </h1>
 

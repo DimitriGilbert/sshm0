@@ -33,12 +33,11 @@ const INSTALL_COMMANDS: CommandEntry[] = [
 
 export default function InstallSection() {
   return (
-    <section className="island-shell mt-8 rise-in rounded-2xl p-6">
-      <p className="island-kicker mb-2">Install</p>
+    <section className="mt-16 pb-4">
       <h2 className="mb-1 text-2xl font-bold text-[var(--sea-ink)]">
         Running in under a minute
       </h2>
-      <p className="mb-5 text-sm text-[var(--sea-ink-soft)]">
+      <p className="mb-5 text-sm leading-relaxed text-[var(--sea-ink-soft)]">
         Download the installer, run it, reload your shell. That is the whole
         process.
       </p>
@@ -52,10 +51,10 @@ export default function InstallSection() {
         commandDelay={500}
       />
 
-      <div className="mt-5">
+      <div className="mt-6">
         <Link
           to="/docs"
-          className="text-sm font-semibold text-[var(--lagoon-deep)] no-underline transition hover:-translate-y-0.5 hover:text-[#246f76]"
+          className="text-sm font-semibold text-[var(--lagoon-deep)] no-underline transition hover:text-[#246f76]"
         >
           View full docs &rarr;
         </Link>

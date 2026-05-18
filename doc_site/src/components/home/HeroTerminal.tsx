@@ -35,15 +35,11 @@ const DEMO_COMMANDS: CommandEntry[] = [
 
 export default function HeroTerminal() {
   return (
-    <section className="island-shell rise-in relative overflow-hidden rounded-[2rem] px-6 py-10 sm:px-10 sm:py-14">
-      <div className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(79,184,178,0.32),transparent_66%)]" />
-      <div className="pointer-events-none absolute -bottom-20 -right-20 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(47,106,74,0.18),transparent_66%)]" />
-
-      <p className="island-kicker mb-3">SSH Connection Manager</p>
-      <h1 className="display-title mb-4 max-w-3xl text-4xl leading-[1.02] font-bold tracking-tight text-[var(--sea-ink)] sm:text-6xl">
-        Remember servers, not IP addresses.
+    <section className="rise-in pt-10 pb-4">
+      <h1 className="display-title mb-4 max-w-3xl text-4xl leading-[1.08] font-bold tracking-tight text-[var(--sea-ink)] sm:text-5xl">
+        Remember servers,<br />not IP addresses.
       </h1>
-      <p className="mb-8 max-w-2xl text-base text-[var(--sea-ink-soft)] sm:text-lg">
+      <p className="mb-8 max-w-2xl text-base leading-relaxed text-[var(--sea-ink-soft)]">
         Store your server configs. Connect by name. Copy files. Organize with
         tags. Export straight to ~/.ssh/config.
       </p>

@@ -33,21 +33,25 @@ const FEATURES = [
 
 export default function FeatureGrid() {
   return (
-    <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {FEATURES.map((feature, index) => (
-        <article
-          key={feature.title}
-          className="island-shell feature-card rise-in rounded-2xl p-5"
-          style={{ animationDelay: `${index * 90 + 80}ms` }}
-        >
-          <h2 className="mb-2 text-base font-semibold text-[var(--sea-ink)]">
-            {feature.title}
-          </h2>
-          <p className="m-0 text-sm text-[var(--sea-ink-soft)]">
-            {feature.description}
-          </p>
-        </article>
-      ))}
+    <section className="mt-16">
+      <h2 className="display-title mb-8 text-2xl font-bold text-[var(--sea-ink)]">
+        What it does
+      </h2>
+      <div className="columns-1 md:columns-2 gap-12">
+        {FEATURES.map((feature) => (
+          <article key={feature.title} className="break-inside-avoid mb-7">
+            <div className="flex items-baseline gap-3 mb-1">
+              <span className="inline-block h-px w-5 flex-shrink-0 bg-[var(--lagoon)]" />
+              <h3 className="text-sm font-semibold text-[var(--sea-ink)]">
+                {feature.title}
+              </h3>
+            </div>
+            <p className="m-0 pl-8 text-sm leading-relaxed text-[var(--sea-ink-soft)]">
+              {feature.description}
+            </p>
+          </article>
+        ))}
+      </div>
     </section>
   )
 }
