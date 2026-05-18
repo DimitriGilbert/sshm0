@@ -14,6 +14,16 @@ import Terminable from "#/components/ui/Terminable";
 import type { CommandEntry } from "#/components/ui/Terminable";
 
 export const Route = createFileRoute("/docs")({
+  head: () => ({
+    meta: [
+      { title: "Documentation — sshm0" },
+      {
+        name: "description",
+        content:
+          "Complete CLI reference for sshm0. Installation, commands, flags, and examples for every subcommand.",
+      },
+    ],
+  }),
   component: Docs,
 });
 
