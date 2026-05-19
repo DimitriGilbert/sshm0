@@ -1,0 +1,256 @@
+#!/bin/bash
+
+# @parseArger-begin
+# @parseArger-help "show connection history" --option "help" --short-option "h"
+# @parseArger-version "0.3.1" --option "version" --short-option "v"
+# @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
+# @parseArger-source $SSHM0_ROOT_DIR/bin/utils
+source "$SSHM0_ROOT_DIR/bin/utils";
+# @parseArger-declarations
+# @parseArger opt count "limit number of entries" --short n --default-value "20"
+# @parseArger opt server "filter by server name" --short s
+# @parseArger-declarations-end
+
+# @parseArger-utils
+_helpHasBeenPrinted=1;
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)";
+# @parseArger-utils-end
+
+# @parseArger-parsing
+
+__cli_arg_count=$#;
+
+die()
+{
+	local _ret=1
+    if [[ -n "$2" ]] && [[ "$2" =~ ^[0-9]+$ ]]; then
+   	_ret="$2"
+    fi
+	test "${_PRINT_HELP:-no}" = yes && print_help >&2
+	log "$1" -3 >&2
+	exit "${_ret}"
+}
+
+
+begins_with_short_option()
+{
+	local first_option all_short_options=''
+	first_option="${1:0:1}"
+	test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
+}
+
+# POSITIONALS ARGUMENTS
+_positionals=();
+_optional_positionals=();
+# OPTIONALS ARGUMENTS
+_arg_count="20"
+_arg_server=
+# FLAGS
+# NESTED
+_verbose_level="0";
+
+
+
+print_help()
+{
+	_triggerSCHelp=1;
+
+	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
+		_helpHasBeenPrinted=0;
+		echo -e "show connection history:"
+	echo -e "	-n, --count <count>: limit number of entries"
+	echo -e "	-s, --server <server>: filter by server name"
+	echo -e "Usage :
+	$0 [--count <value>] [--server <value>]";
+	fi
+
+}
+
+log() {
+	local _arg_msg="${1}";
+	local _arg_level="${2:-0}";
+	if [ "${_arg_level}" -le "${_verbose_level}" ]; then
+		case "$_arg_level" in
+			-3)
+				_arg_COLOR="\033[0;31m";
+				;;
+			-2)
+				_arg_COLOR="\033[0;33m";
+				;;
+			-1)
+				_arg_COLOR="\033[1;33m";
+				;;
+			1)
+				_arg_COLOR="\033[0;32m";
+				;;
+			2)
+				_arg_COLOR="\033[1;36m";
+				;;
+			3)
+				_arg_COLOR="\033[0;36m";
+				;;
+			*)
+				_arg_COLOR="\033[0m";
+				;;
+		esac
+		echo -e "${_arg_COLOR}${_arg_msg}\033[0m";
+	fi
+}
+
+parse_commandline()
+{
+	_positionals_count=0
+	while test $# -gt 0
+	do
+		_key="$1"
+		case "$_key" in
+			-n|--count)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_count="$2"
+				shift
+				;;
+			--count=*)
+				_arg_count="${_key##--count=}"
+				;;
+			-n*)
+				_arg_count="${_key##-n}"
+				;;
+			
+			-s|--server)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_server="$2"
+				shift
+				;;
+			--server=*)
+				_arg_server="${_key##--server=}"
+				;;
+			-s*)
+				_arg_server="${_key##-s}"
+				;;
+			
+			-h|--help)
+				print_help;
+				exit 0;
+				;;
+			-h*)
+				print_help;
+				exit 0;
+				;;
+			-v|--version)
+				print_version;
+				exit 0;
+				;;
+			-v*)
+				print_version;
+				exit 0;
+				;;
+			--verbose)
+					if [ $# -lt 2 ];then
+						_verbose_level="$((_verbose_level + 1))";
+					else
+						_verbose_level="$2";
+						shift;
+					fi
+					;;
+				--quiet)
+					if [ $# -lt 2 ];then
+						_verbose_level="$((_verbose_level - 1))";
+					else
+						_verbose_level="-$2";
+						shift;
+					fi
+					;;
+				
+				*)
+				_last_positional="$1"
+				_positionals+=("$_last_positional")
+				_positionals_count=$((_positionals_count + 1))
+				;;
+		esac
+		shift
+	done
+}
+
+
+handle_passed_args_count()
+{
+	local _required_args_string=""
+	if [ "${_positionals_count}" -gt 0 ] && [ "$_helpHasBeenPrinted" == "1" ];then
+		_PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect 0, but got ${_positionals_count} (the last one was: '${_last_positional}').\n\t${_positionals[*]}" 1
+	fi
+}
+
+
+assign_positional_args()
+{
+	local _positional_name _shift_for=$1;
+	_positional_names=""
+	shift "$_shift_for"
+	for _positional_name in ${_positional_names};do
+		test $# -gt 0 || break;
+		eval "if [ \"\$_one_of${_positional_name}\" != \"\" ];then [[ \"\${_one_of${_positional_name}[*]}\" =~ \"\${1}\" ]];fi" || die "${_positional_name} must be one of: $(eval "echo \"\${_one_of${_positional_name}[*]}\"")" 1;
+		eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an ParseArger bug." 1;
+		shift;
+	done
+}
+
+print_debug()
+{
+	print_help
+	# shellcheck disable=SC2145
+	echo "DEBUG: $0 $@";
+	
+	echo -e "	count: ${_arg_count}";
+	echo -e "	server: ${_arg_server}";
+
+}
+
+
+print_version()
+{
+	echo "0.3.1";
+}
+
+
+on_interrupt() {
+	die Process aborted! 130;
+}
+
+
+parse_commandline "$@";
+handle_passed_args_count;
+assign_positional_args 1 "${_positionals[@]}";
+trap on_interrupt INT;
+
+
+
+# @parseArger-parsing-end
+# print_debug "$@"
+# @parseArger-end
+
+_history_file="$SSHM0_CONFIG_DIR/history"
+
+if [ ! -f "$_history_file" ]; then
+	echo "No history"
+	exit 0
+fi
+
+_output=()
+while IFS=':' read -r _ts _srv; do
+	if [ -n "$_arg_server" ] && [ "$_srv" != "$_arg_server" ]; then
+		continue
+	fi
+	_formatted="$(date -d @"$_ts" '+%Y-%m-%d %H:%M:%S')"
+	_output+=("$_formatted  $_srv")
+done < <(tac "$_history_file")
+
+if [ ${#_output[@]} -eq 0 ]; then
+	echo "No matching history entries"
+	exit 0
+fi
+
+_i=0
+while [ "$_i" -lt "$_arg_count" ] && [ "$_i" -lt "${#_output[@]}" ]; do
+	echo "${_output[$_i]}"
+	_i=$((_i + 1))
+done

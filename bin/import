@@ -1,0 +1,403 @@
+#!/bin/bash
+
+# @parseArger-begin
+# @parseArger-help "import servers from SSH config file" --option "help" --short-option "h"
+# @parseArger-version "0.3.1" --option "version" --short-option "v"
+# @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
+# @parseArger-source $SSHM0_ROOT_DIR/bin/utils
+source "$SSHM0_ROOT_DIR/bin/utils";
+# @parseArger-declarations
+# @parseArger opt file "input SSH config file path" --short f --default-value "$HOME/.ssh/config"
+# @parseArger flag force "overwrite existing servers without asking"
+# @parseArger flag dry-run "preview what would be imported without writing files"
+# @parseArger opt tag "comma-separated tags to add to all imported servers" --short t
+# @parseArger-declarations-end
+
+# @parseArger-utils
+_helpHasBeenPrinted=1;
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)";
+# @parseArger-utils-end
+
+# @parseArger-parsing
+
+__cli_arg_count=$#;
+
+die()
+{
+	local _ret=1
+    if [[ -n "$2" ]] && [[ "$2" =~ ^[0-9]+$ ]]; then
+   	_ret="$2"
+    fi
+	test "${_PRINT_HELP:-no}" = yes && print_help >&2
+	log "$1" -3 >&2
+	exit "${_ret}"
+}
+
+
+begins_with_short_option()
+{
+	local first_option all_short_options='ft'
+	first_option="${1:0:1}"
+	test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
+}
+
+# POSITIONALS ARGUMENTS
+_positionals=();
+_optional_positionals=();
+# OPTIONALS ARGUMENTS
+_arg_file="$HOME/.ssh/config"
+# FLAGS
+_arg_force="off"
+_arg_dry_run="off"
+_arg_tag=
+# NESTED
+_verbose_level="0";
+
+
+
+print_help()
+{
+	_triggerSCHelp=1;
+
+	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
+		_helpHasBeenPrinted=0;
+		echo -e "import servers from SSH config file:"
+	echo -e "	-f, --file <file>: input SSH config file path [default: '$HOME/.ssh/config']"
+	echo -e "	--force|--no-force: overwrite existing servers without asking"
+	echo -e "	--dry-run|--no-dry-run: preview what would be imported without writing files"
+	echo -e "	-t, --tag <tag>: comma-separated tags to add to all imported servers"
+	echo -e "Usage :
+	$0 [--file <value>] [--[no-]force] [--[no-]dry-run] [--tag <value>]";
+	fi
+
+}
+
+log() {
+	local _arg_msg="${1}";
+	local _arg_level="${2:-0}";
+	if [ "${_arg_level}" -le "${_verbose_level}" ]; then
+		case "$_arg_level" in
+			-3)
+				_arg_COLOR="\033[0;31m";
+				;;
+			-2)
+				_arg_COLOR="\033[0;33m";
+				;;
+			-1)
+				_arg_COLOR="\033[1;33m";
+				;;
+			1)
+				_arg_COLOR="\033[0;32m";
+				;;
+			2)
+				_arg_COLOR="\033[1;36m";
+				;;
+			3)
+				_arg_COLOR="\033[0;36m";
+				;;
+			*)
+				_arg_COLOR="\033[0m";
+				;;
+		esac
+		echo -e "${_arg_COLOR}${_arg_msg}\033[0m";
+	fi
+}
+
+parse_commandline()
+{
+	_positionals_count=0
+	while test $# -gt 0
+	do
+		_key="$1"
+		case "$_key" in
+			-f|--file)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_file="$2"
+				shift
+				;;
+			--file=*)
+				_arg_file="${_key##--file=}"
+				;;
+			-f*)
+				_arg_file="${_key##-f}"
+				;;
+			
+			-t|--tag)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_tag="$2"
+				shift
+				;;
+			--tag=*)
+				_arg_tag="${_key##--tag=}"
+				;;
+			-t*)
+				_arg_tag="${_key##-t}"
+				;;
+			
+			--force)
+				_arg_force="on"
+				;;
+			--no-force)
+				_arg_force="off"
+				;;
+			--dry-run)
+				_arg_dry_run="on"
+				;;
+			--no-dry-run)
+				_arg_dry_run="off"
+				;;
+			-h|--help)
+				print_help;
+				exit 0;
+				;;
+			-h*)
+				print_help;
+				exit 0;
+				;;
+			-v|--version)
+				print_version;
+				exit 0;
+				;;
+			-v*)
+				print_version;
+				exit 0;
+				;;
+			--verbose)
+					if [ $# -lt 2 ];then
+						_verbose_level="$((_verbose_level + 1))";
+					else
+						_verbose_level="$2";
+						shift;
+					fi
+					;;
+				--quiet)
+					if [ $# -lt 2 ];then
+						_verbose_level="$((_verbose_level - 1))";
+					else
+						_verbose_level="-$2";
+						shift;
+					fi
+					;;
+				
+				*)
+				_last_positional="$1"
+				_positionals+=("$_last_positional")
+				_positionals_count=$((_positionals_count + 1))
+				;;
+		esac
+		shift
+	done
+}
+
+
+handle_passed_args_count()
+{
+	local _required_args_string=""
+	if [ "${_positionals_count}" -gt 0 ] && [ "$_helpHasBeenPrinted" == "1" ];then
+		_PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect at most 0, but got ${_positionals_count} (the last one was: '${_last_positional}').\n\t${_positionals[*]}" 1
+	fi
+}
+
+
+assign_positional_args()
+{
+	local _positional_name _shift_for=$1;
+	_positional_names=""
+	shift "$_shift_for"
+	for _positional_name in ${_positional_names};do
+		test $# -gt 0 || break;
+		eval "if [ \"\$_one_of${_positional_name}\" != \"\" ];then [[ \"\${_one_of${_positional_name}[*]}\" =~ \"\${1}\" ]];fi" || die "${_positional_name} must be one of: $(eval "echo \"\${_one_of${_positional_name}[*]}\"")" 1;
+		eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an ParseArger bug." 1;
+		shift;
+	done
+}
+
+print_debug()
+{
+	print_help
+	# shellcheck disable=SC2145
+	echo "DEBUG: $0 $@";
+	
+	echo -e "	file: ${_arg_file}";
+	echo -e "	force: ${_arg_force}";
+	echo -e "	dry-run: ${_arg_dry_run}";
+	echo -e "	tag: ${_arg_tag}";
+
+}
+
+
+print_version()
+{
+	echo "0.3.1";
+}
+
+
+on_interrupt() {
+	die Process aborted! 130;
+}
+
+
+parse_commandline "$@";
+handle_passed_args_count;
+assign_positional_args 0 "${_positionals[@]}";
+trap on_interrupt INT;
+
+
+
+# @parseArger-parsing-end
+# print_debug "$@"
+# @parseArger-end
+
+_arg_file="${_arg_file/#\~/$HOME}"
+
+if [ ! -f "$_arg_file" ]; then
+	die "SSH config file not found: $_arg_file" 1
+fi
+
+_imported=0
+_skipped=0
+_host_name=""
+_host_hostname=""
+_host_user=""
+_host_port=""
+_host_identity=""
+
+_flush_host() {
+	if [ -z "$_host_name" ]; then
+		return
+	fi
+	if [ -z "$_host_hostname" ]; then
+		_host_name=""
+		_host_hostname=""
+		_host_user=""
+		_host_port=""
+		_host_identity=""
+		return
+	fi
+	local _auth _key
+	if [ -n "$_host_identity" ]; then
+		_auth="key"
+		_key="$_host_identity"
+	else
+		_auth="password"
+		_key=""
+	fi
+	local _port="${_host_port:-22}"
+	local _exists=0
+	if sshm0_server_exists "$_host_name"; then
+		_exists=1
+	fi
+	if [ "$_exists" -eq 1 ] && [ "$_arg_force" = "off" ]; then
+		if [ "$_arg_dry_run" = "on" ]; then
+			log "[DRY RUN] Would skip $_host_name: already exists" -2
+		else
+			log "Skipping $_host_name: already exists (use --force to overwrite)" -2
+		fi
+		_skipped=$((_skipped + 1))
+		_host_name=""
+		_host_hostname=""
+		_host_user=""
+		_host_port=""
+		_host_identity=""
+		return
+	fi
+	if [ "$_arg_dry_run" = "on" ]; then
+		if [ "$_exists" -eq 1 ]; then
+			log "[DRY RUN] Would overwrite: $_host_name ($_host_hostname:${_port}) user=$_host_user auth=$_auth" 1
+		else
+			log "[DRY RUN] Would import: $_host_name ($_host_hostname:${_port}) user=$_host_user auth=$_auth" 1
+		fi
+		_imported=$((_imported + 1))
+		_host_name=""
+		_host_hostname=""
+		_host_user=""
+		_host_port=""
+		_host_identity=""
+		return
+	fi
+	local _tmpcfg
+	_tmpcfg="$(mktemp)" || die "Failed to create temporary file" 1
+	printf '# sshm0 server config\n' > "$_tmpcfg"
+	printf 'sshm0_server_ip=%s\nsshm0_server_user=%s\nsshm0_server_port=%s\nsshm0_server_auth=%s\nsshm0_server_password=%s\nsshm0_server_key=%s\nsshm0_server_cd=%s\nsshm0_server_exec_before=%s\n' \
+		"$(printf '%q' "$_host_hostname")" \
+		"$(printf '%q' "$_host_user")" \
+		"$(printf '%q' "$_port")" \
+		"$(printf '%q' "$_auth")" \
+		"$(printf '%q' "")" \
+		"$(printf '%q' "$_key")" \
+		"" \
+		"()" \
+		>> "$_tmpcfg" || { rm -f "$_tmpcfg"; die "Failed to write server config" 1; }
+	local _tags_value=""
+	if [ -n "$_arg_tag" ]; then
+		local IFS=','
+		read -ra _tag_parts <<< "$_arg_tag"
+		for _tp in "${_tag_parts[@]}"; do
+			_tp="${_tp# }"; _tp="${_tp% }"
+			[ -z "$_tp" ] && continue
+			[ -n "$_tags_value" ] && _tags_value+=" "
+			_tags_value+="$(printf '%q' "$_tp")"
+		done
+	fi
+	printf 'sshm0_server_tags=(%s)\n' "$_tags_value" >> "$_tmpcfg"
+	chmod 600 "$_tmpcfg" || { rm -f "$_tmpcfg"; die "Failed to chmod server config" 1; }
+	local _config_path
+	_config_path="$(sshm0_server_config_path "$_host_name")" || { rm -f "$_tmpcfg"; die "Invalid server name: $_host_name" 1; }
+	mv "$_tmpcfg" "$_config_path" || { rm -f "$_tmpcfg"; die "Failed to save server config" 1; }
+	log "Imported $_host_name" 1
+	_imported=$((_imported + 1))
+	_host_name=""
+	_host_hostname=""
+	_host_user=""
+	_host_port=""
+	_host_identity=""
+}
+
+while IFS= read -r _line || [ -n "$_line" ]; do
+	_line="${_line#"${_line%%[![:space:]]*}"}"
+	case "$_line" in
+		Host\ *)
+			_flush_host
+			_host_name="${_line#Host }"
+			_host_name="${_host_name#"${_host_name%%[![:space:]]*}"}"
+			_host_name="${_host_name%"${_host_name##*[![:space:]]}"}"
+			case "$_host_name" in
+				'*') _host_name="" ;;
+				'*.'*) _host_name="" ;;
+			esac
+			_host_hostname=""
+			_host_user=""
+			_host_port=""
+			_host_identity=""
+			;;
+		HostName\ *)
+			_host_hostname="${_line#HostName }"
+			_host_hostname="${_host_hostname#"${_host_hostname%%[![:space:]]*}"}"
+			_host_hostname="${_host_hostname%"${_host_hostname##*[![:space:]]}"}"
+			;;
+		User\ *)
+			_host_user="${_line#User }"
+			_host_user="${_host_user#"${_host_user%%[![:space:]]*}"}"
+			_host_user="${_host_user%"${_host_user##*[![:space:]]}"}"
+			;;
+		Port\ *)
+			_host_port="${_line#Port }"
+			_host_port="${_host_port#"${_host_port%%[![:space:]]*}"}"
+			_host_port="${_host_port%"${_host_port##*[![:space:]]}"}"
+			;;
+		IdentityFile\ *)
+			_host_identity="${_line#IdentityFile }"
+			_host_identity="${_host_identity#"${_host_identity%%[![:space:]]*}"}"
+			_host_identity="${_host_identity%"${_host_identity##*[![:space:]]}"}"
+			_host_identity="${_host_identity/#\~/$HOME}"
+			;;
+	esac
+done < "$_arg_file"
+
+_flush_host
+
+if [ "$_arg_dry_run" = "on" ]; then
+	log "[DRY RUN] Would import $_imported server(s), skipped $_skipped" 1
+else
+	log "Imported $_imported server(s), skipped $_skipped" 1
+fi
