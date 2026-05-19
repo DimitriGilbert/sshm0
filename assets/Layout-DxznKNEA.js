@@ -1,0 +1,1 @@
+import{n as e}from"./index-CZ1BEFRr.js";var t=e();function n({children:e,className:n}){return(0,t.jsx)(`main`,{className:`page-wrap px-4 pb-8 pt-14 ${n??``}`,children:e})}export{n as t};
