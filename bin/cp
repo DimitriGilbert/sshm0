@@ -240,6 +240,7 @@ else
 fi
 
 if sshm0_load_server "$_server_name"; then
+	sshm0_server_password=$(sshm0_decrypt_password "$sshm0_server_password")
 	# shellcheck source=../server.dist
 		
 	if [[ "$_rmt" == "src" ]]; then

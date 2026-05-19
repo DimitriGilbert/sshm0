@@ -96,12 +96,20 @@ _sshm0_completions() {
       while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--output -o --restore --yes --no-yes -y")" -- "$cur" )
       ;;
 
+    'update'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--check -c --force -f")" -- "$cur" )
+      ;;
+
+    'exec'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true) --tag -t --group -g --parallel --no-parallel -p --yes --no-yes -y --timeout")" -- "$cur" )
+      ;;
+
     'tags'*)
       while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--long -l")" -- "$cur" )
       ;;
 
     *)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "list add config connect cp edit export import plugin remove rename show ping doctor tags history backup --config-dir")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "list add config connect cp edit export import plugin remove rename show ping doctor tags history backup update exec --config-dir")" -- "$cur" )
       ;;
 
   esac

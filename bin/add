@@ -396,6 +396,7 @@ fi
 
 if [ "$dowrite" -eq 0 ]; then
 	sshm0_validate_server "$_arg_ip" "$_arg_port" "$_arg_user" "$_arg_auth" "$_arg_key" || exit 1
+	_enc_pw=$(sshm0_encrypt_password "$_arg_password")
 	_tmpcfg="$(mktemp)"
 	printf '# sshm0 server config\n' > "$_tmpcfg"
 	printf 'sshm0_server_ip=%s\nsshm0_server_user=%s\nsshm0_server_port=%s\nsshm0_server_auth=%s\nsshm0_server_password=%s\nsshm0_server_key=%s\nsshm0_server_timeout=%s\nsshm0_server_cd=%s\nsshm0_server_exec_before=%s\n' \
@@ -403,7 +404,7 @@ if [ "$dowrite" -eq 0 ]; then
 		"$(printf '%q' "$_arg_user")" \
 		"$(printf '%q' "$_arg_port")" \
 		"$(printf '%q' "$_arg_auth")" \
-		"$(printf '%q' "$_arg_password")" \
+		"$(printf '%q' "$_enc_pw")" \
 		"$(printf '%q' "$_arg_key")" \
 		"$(printf '%q' "$_arg_timeout")" \
 		"" \

@@ -244,6 +244,7 @@ trap _on_interrupt INT TERM HUP;
 
 #shellcheck source=../server.dist
 if sshm0_load_server "$_arg_name"; then
+  sshm0_server_password=$(sshm0_decrypt_password "$sshm0_server_password")
   coarg=("${sshm0_server_user}@${sshm0_server_ip}" "-p" "${sshm0_server_port}" "-o" "ConnectTimeout=${sshm0_server_timeout:-10}");
 	
 	log "Connecting to $_arg_name :

@@ -211,7 +211,11 @@ if sshm0_server_exists "$_arg_name"; then
 	# Display password safely — never show plaintext
 	_pw_display="(none)"
 	if [ -n "$sshm0_server_password" ]; then
-		_pw_display="(set)"
+		if [[ "$sshm0_server_password" == enc:* ]]; then
+			_pw_display="(encrypted)"
+		else
+			_pw_display="(set)"
+		fi
 	fi
 
 	# Display optional fields — show (none) if empty

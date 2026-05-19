@@ -14,6 +14,8 @@ sshm0:
 - ping
 - doctor
 - backup
+- update
+- exec
 - --config-dir
 sshm0 list:
 - --tag
@@ -135,6 +137,25 @@ sshm0 backup:
 - --yes
 - --no-yes
 - -y
+sshm0 update:
+- --check
+- -c
+- --force
+- -f
+
+sshm0 exec:
+- $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
+- --tag
+- -t
+- --group
+- -g
+- --parallel
+- --no-parallel
+- -p
+- --yes
+- --no-yes
+- -y
+- --timeout
 
 
 

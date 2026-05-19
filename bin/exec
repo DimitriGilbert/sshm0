@@ -1,0 +1,397 @@
+#!/bin/bash
+
+# @parseArger-begin
+# @parseArger-help "execute a command on one or more servers" --option "help" --short-option "h"
+# @parseArger-version "0.3.1" --option "version" --short-option "v"
+# @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
+# @parseArger-source $SSHM0_ROOT_DIR/bin/utils
+source "$SSHM0_ROOT_DIR/bin/utils";
+# @parseArger-leftovers leftovers
+# @parseArger-declarations
+# @parseArger pos servers "comma-separated server names, or 'all'"
+# @parseArger opt tag "run on all servers with this tag" --short t
+# @parseArger opt group "run on all servers in this group" --short g
+# @parseArger flag parallel "run in parallel" --short p
+# @parseArger flag yes "skip confirmation prompt" --short y
+# @parseArger opt timeout "per-command timeout in seconds" --default-value "30"
+# @parseArger-declarations-end
+
+# @parseArger-utils
+_helpHasBeenPrinted=1;
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)";
+# @parseArger-utils-end
+
+# @parseArger-parsing
+
+__cli_arg_count=$#;
+
+die()
+{
+	local _ret=1
+    if [[ -n "$2" ]] && [[ "$2" =~ ^[0-9]+$ ]]; then
+   	_ret="$2"
+    fi
+	test "${_PRINT_HELP:-no}" = yes && print_help >&2
+	log "$1" -3 >&2
+	exit "${_ret}"
+}
+
+
+begins_with_short_option()
+{
+	local first_option all_short_options='tgpy'
+	first_option="${1:0:1}"
+	test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
+}
+
+# POSITIONALS ARGUMENTS
+_positionals=();
+_optional_positionals=();
+_arg_servers="";
+# OPTIONALS ARGUMENTS
+_arg_tag=
+_arg_group=
+_arg_timeout="30"
+# FLAGS
+_arg_parallel="off"
+_arg_yes="off"
+# NESTED
+# LEFTOVERS
+_arg_leftovers=()
+_verbose_level="0";
+
+
+
+print_help()
+{
+	_triggerSCHelp=1;
+
+	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
+		_helpHasBeenPrinted=0;
+		echo -e "execute a command on one or more servers:"
+	echo -e "	servers: comma-separated server names, or 'all'"
+	echo -e "	-t, --tag <tag>: run on all servers with this tag"
+	echo -e "	-g, --group <group>: run on all servers in this group"
+	echo -e "	-p|--parallel|--no-parallel: run in parallel"
+	echo -e "	-y|--yes|--no-yes: skip confirmation prompt"
+	echo -e "	--timeout <timeout>: per-command timeout in seconds [default: ' 30 ']"
+	echo -e "Usage :
+	$0 <servers> [--tag <value>] [--group <value>] [--timeout <value>] [--[no-]parallel] [--[no-]yes] -- <command>";
+	fi
+
+}
+
+log() {
+	local _arg_msg="${1}";
+	local _arg_level="${2:-0}";
+	if [ "${_arg_level}" -le "${_verbose_level}" ]; then
+		case "$_arg_level" in
+			-3)
+				_arg_COLOR="\033[0;31m";
+				;;
+			-2)
+				_arg_COLOR="\033[0;33m";
+				;;
+			-1)
+				_arg_COLOR="\033[1;33m";
+				;;
+			1)
+				_arg_COLOR="\033[0;32m";
+				;;
+			2)
+				_arg_COLOR="\033[1;36m";
+				;;
+			3)
+				_arg_COLOR="\033[0;36m";
+				;;
+			*)
+				_arg_COLOR="\033[0m";
+				;;
+		esac
+		echo -e "${_arg_COLOR}${_arg_msg}\033[0m";
+	fi
+}
+
+parse_commandline()
+{
+	_positionals_count=0
+	while test $# -gt 0
+	do
+		_key="$1"
+		case "$_key" in
+			-t|--tag)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_tag="$2"
+				shift
+				;;
+			--tag=*)
+				_arg_tag="${_key##--tag=}"
+				;;
+			-t*)
+				_arg_tag="${_key##-t}"
+				;;
+			
+			-g|--group)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_group="$2"
+				shift
+				;;
+			--group=*)
+				_arg_group="${_key##--group=}"
+				;;
+			-g*)
+				_arg_group="${_key##-g}"
+				;;
+
+			-p|--parallel)
+				_arg_parallel="on"
+				;;
+			--no-parallel)
+				_arg_parallel="off"
+				;;
+
+			-y|--yes)
+				_arg_yes="on"
+				;;
+			--no-yes)
+				_arg_yes="off"
+				;;
+
+			--timeout)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_timeout="$2"
+				shift
+				;;
+			--timeout=*)
+				_arg_timeout="${_key##--timeout=}"
+				;;
+
+			-h|--help)
+				print_help;
+				exit 0;
+				;;
+			-h*)
+				print_help;
+				exit 0;
+				;;
+			-v|--version)
+				print_version;
+				exit 0;
+				;;
+			-v*)
+				print_version;
+				exit 0;
+				;;
+			--verbose)
+					if [ $# -lt 2 ];then
+						_verbose_level="$((_verbose_level + 1))";
+					else
+						_verbose_level="$2";
+						shift;
+					fi
+					;;
+				--quiet)
+					if [ $# -lt 2 ];then
+						_verbose_level="$((_verbose_level - 1))";
+					else
+						_verbose_level="-$2";
+						shift;
+					fi
+					;;
+				
+				*)
+				_last_positional="$1"
+				_positionals+=("$_last_positional")
+				_positionals_count=$((_positionals_count + 1))
+				;;
+		esac
+		shift
+	done
+}
+
+
+handle_passed_args_count()
+{
+	local _required_args_string="servers"
+	if [ "${_positionals_count}" -lt 1 ] && [ "$_helpHasBeenPrinted" == "1" ];then
+		_PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 1 (namely: $_required_args_string), but got only ${_positionals_count}.
+	${_positionals[*]}" 1;
+	fi
+}
+
+
+assign_positional_args()
+{
+	local _positional_name _shift_for=$1;
+	_positional_names="_arg_servers ";
+	_leftovers_count=$((${#_positionals[@]} - 1))
+	for ((ii = 0; ii < _leftovers_count; ii++));do
+		_positional_names="$_positional_names _arg_leftovers[$((ii + 0))]";
+	done
+
+	shift "$_shift_for"
+	for _positional_name in ${_positional_names};do
+		test $# -gt 0 || break;
+		if ! [[ "$_positional_name" =~ "_arg_leftovers" ]];then
+			eval "if [ \"\$_one_of${_positional_name}\" != \"\" ];then [[ \"\${_one_of${_positional_name}[*]}\" =~ \"\${1}\" ]];fi" || die "${_positional_name} must be one of: $(eval "echo \"\${_one_of${_positional_name}[*]}\"")" 1;
+		fi
+		eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an ParseArger bug." 1;
+		shift;
+	done
+}
+
+print_debug()
+{
+	print_help
+	# shellcheck disable=SC2145
+	echo "DEBUG: $0 $@";
+	
+	echo -e "	servers: ${_arg_servers}";
+	echo -e "	tag: ${_arg_tag}";
+	echo -e "	group: ${_arg_group}";
+	echo -e "	parallel: ${_arg_parallel}";
+	echo -e "	yes: ${_arg_yes}";
+	echo -e "	timeout: ${_arg_timeout}";
+	echo -e "	leftovers: ${_arg_leftovers[*]}";
+
+}
+
+
+print_version()
+{
+	echo "0.3.1";
+}
+
+
+on_interrupt() {
+	die Process aborted! 130;
+}
+
+
+parse_commandline "$@";
+handle_passed_args_count;
+assign_positional_args 1 "${_positionals[@]}";
+trap on_interrupt INT;
+
+
+
+# @parseArger-parsing-end
+# print_debug "$@"
+# @parseArger-end
+
+if [ "${#_arg_leftovers[@]}" -eq 0 ]; then
+	die "No command specified. Use -- <command> to pass the command to execute." 1
+fi
+
+_exec_cmd="${_arg_leftovers[*]}"
+
+_target_servers=()
+
+if [ -n "$_arg_tag" ]; then
+	for _server_config in "$SSHM0_CONFIG_DIR/servers/"*; do
+		[ -e "$_server_config" ] || continue
+		_srv_name="$(basename "$_server_config")"
+		sshm0_server_tags=()
+		source "$_server_config"
+		for _t in "${sshm0_server_tags[@]}"; do
+			if [ "$_t" = "$_arg_tag" ]; then
+				_target_servers+=("$_srv_name")
+				break
+			fi
+		done
+	done
+elif [ -n "$_arg_group" ]; then
+	for _server_config in "$SSHM0_CONFIG_DIR/servers/"*; do
+		[ -e "$_server_config" ] || continue
+		_srv_name="$(basename "$_server_config")"
+		sshm0_server_group=""
+		source "$_server_config"
+		if [ "$sshm0_server_group" = "$_arg_group" ]; then
+			_target_servers+=("$_srv_name")
+		fi
+	done
+elif [ -n "$_arg_servers" ]; then
+	if [ "$_arg_servers" = "all" ]; then
+		for _server_config in "$SSHM0_CONFIG_DIR/servers/"*; do
+			[ -e "$_server_config" ] || continue
+			_target_servers+=("$(basename "$_server_config")")
+		done
+	else
+		IFS=',' read -ra _srv_parts <<< "$_arg_servers"
+		for _srv_part in "${_srv_parts[@]}"; do
+			_target_servers+=("$_srv_part")
+		done
+	fi
+else
+	die "No servers specified. Use a positional argument, --tag, or --group." 1
+fi
+
+if [ "${#_target_servers[@]}" -eq 0 ]; then
+	die "No matching servers found." 1
+fi
+
+for _tsrv in "${_target_servers[@]}"; do
+	if ! sshm0_server_exists "$_tsrv"; then
+		die "Server '$_tsrv' not found." 1
+	fi
+done
+
+if [ "$_arg_yes" != "on" ] && [ "${#_target_servers[@]}" -gt 1 ]; then
+	read -rp "Execute '${_exec_cmd}' on ${#_target_servers[@]} servers? [y/N] " _confirm
+	if [ "$_confirm" != "y" ] && [ "$_confirm" != "Y" ]; then
+		echo "Aborted."
+		exit 0
+	fi
+fi
+
+_failed=0
+_pids=()
+_output_files=()
+
+for _srv in "${_target_servers[@]}"; do
+	sshm0_load_server "$_srv" || { _failed=$((_failed + 1)); continue; }
+
+	_ssh_args=("-o" "ConnectTimeout=${_arg_timeout}" "-p" "${sshm0_server_port}" "${sshm0_server_user}@${sshm0_server_ip}")
+
+	if [ "$sshm0_server_auth" = "key" ]; then
+		_ssh_args+=("-i" "$sshm0_server_key")
+	fi
+
+	_proxy_jump="$(sshm0_get_proxy_args "$_srv")"
+	if [ -n "$_proxy_jump" ]; then
+		_ssh_args+=("-o" "ProxyJump=$_proxy_jump")
+	fi
+
+	if [ "$_arg_parallel" = "on" ]; then
+		_tmpout="$(mktemp)"
+		_output_files+=("$_tmpout")
+		(
+			ssh "${_ssh_args[@]}" "$_exec_cmd" 2>&1 | sed "s/^/[$_srv] /" > "$_tmpout"
+			exit ${PIPESTATUS[0]}
+		) &
+		_pids+=($!)
+	else
+		log "[$_srv] Running: $_exec_cmd" 2
+		ssh "${_ssh_args[@]}" "$_exec_cmd" 2>&1 | sed "s/^/[$_srv] /"
+		if [ ${PIPESTATUS[0]} -ne 0 ]; then
+			_failed=$((_failed + 1))
+		fi
+	fi
+done
+
+if [ "$_arg_parallel" = "on" ]; then
+	for _i in "${!_pids[@]}"; do
+		wait "${_pids[$_i]}" || _failed=$((_failed + 1))
+		cat "${_output_files[$_i]}"
+		rm -f "${_output_files[$_i]}"
+	done
+fi
+
+_total=${#_target_servers[@]}
+if [ "$_failed" -eq 0 ]; then
+	log "Executed on $_total servers (0 failed)" 1
+else
+	log "Executed on $_total servers ($_failed failed)" -1
+fi
+
+exit $_failed
