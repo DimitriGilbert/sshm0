@@ -1,6 +1,7 @@
 sshm0:
 - list
 - add
+- config
 - connect
 - cp
 - edit
@@ -9,6 +10,7 @@ sshm0:
 - rename
 - show
 - export
+- import
 - ping
 - doctor
 - --config-dir
@@ -72,16 +74,41 @@ sshm0 export:
 - --output
 - -o
 - --merge
+sshm0 import:
+- --file
+- -f
+- --force
+- --no-force
+- --dry-run
+- --no-dry-run
+- --tag
+- -t
 sshm0 plugin:
 sshm0 remove:
 - $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
+- --yes
+- --no-yes
+- -y
 sshm0 rename:
 - $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
 sshm0 show:
 - $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
 sshm0 ping:
 - $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
+sshm0 config:
+- list
+- get
+- set
+- plugins
 sshm0 doctor:
+sshm0 tags:
+- --long
+- -l
+sshm0 history:
+- --count
+- -n
+- --server
+- -s
 
 
 

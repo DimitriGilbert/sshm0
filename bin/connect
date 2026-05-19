@@ -311,13 +311,13 @@ if sshm0_load_server "$_arg_name"; then
 		export DISPLAY="YOURDOINGITWRONG";
   fi
 
+  sshm0_record_connection "$_arg_name"
   setsid ssh "${coarg[@]}" "$ecmd";
-  
+   
 	if [ -n "$_tmpps" ] && [ -f "$_tmpps" ]; then
 		rm -f "$_tmpps"
 	fi
 	unset SSH_PASSWORD SSH_ASKPASS DISPLAY;
-	sshm0_record_connection "$_arg_name"
 else
   die "Server '$_arg_name' not found." 1;
 fi

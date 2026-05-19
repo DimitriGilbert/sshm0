@@ -1,7 +1,7 @@
 #!/bin/bash
 # @parseArger-begin
 # @parseArger-help "Install sshm0" --option "help" --short-option "h"
-# @parseArger-verbose --option "verbose" --level "0"
+# @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
 # @parseArger-declarations
 # @parseArger opt shell-rc-file "where to put the source directive" --default-value "\$HOME/.bashrc" --repeat --alias install-file
 # @parseArger flag comment "add sshm0 comment" --on
@@ -131,6 +131,14 @@ parse_commandline()
 					_verbose_level="$((_verbose_level + 1))";
 				else
 					_verbose_level="$2";
+					shift;
+				fi
+				;;
+			--quiet)
+				if [ $# -lt 2 ];then
+					_verbose_level="$((_verbose_level - 1))";
+				else
+					_verbose_level="-$2";
 					shift;
 				fi
 				;;

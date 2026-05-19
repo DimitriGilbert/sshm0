@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # @parseArger-begin
-# @parseArger-help "add a server" --option "help" --short-option "h"
+# @parseArger-help "edit a server" --option "help" --short-option "h"
 # @parseArger-version "0.3.1" --option "version" --short-option "v"
 # @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
@@ -72,7 +72,7 @@ print_help()
 
 	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
 		_helpHasBeenPrinted=0;
-		echo -e "add a server:"
+		echo -e "edit a server:"
 	echo -e "	name: server name"
 	echo -e "	--ip <ip>: ip address"
 	echo -e "	--user <user>: username"
