@@ -16,6 +16,9 @@ sshm0:
 - backup
 - update
 - exec
+- rsync
+- tags
+- history
 - --config-dir
 sshm0 list:
 - --tag
@@ -105,6 +108,7 @@ sshm0 import:
 - --tag
 - -t
 sshm0 plugin:
+- --help
 sshm0 remove:
 - $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
 - --yes
@@ -116,6 +120,9 @@ sshm0 show:
 - $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
 sshm0 ping:
 - $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
+sshm0 rsync:
+- <file>
+- <file>
 sshm0 config:
 - list
 - get

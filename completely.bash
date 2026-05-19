@@ -60,6 +60,10 @@ _sshm0_completions() {
       while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -A file -A file -- "$cur" )
       ;;
 
+    'plugin'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--help")" -- "$cur" )
+      ;;
+
     'rename'*)
       while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)")" -- "$cur" )
       ;;
@@ -78,6 +82,10 @@ _sshm0_completions() {
 
     'ping'*)
       while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)")" -- "$cur" )
+      ;;
+
+    'rsync'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -A file -A file -- "$cur" )
       ;;
 
     'history'*)
@@ -109,7 +117,7 @@ _sshm0_completions() {
       ;;
 
     *)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "list add config connect cp edit export import plugin remove rename show ping doctor tags history backup update exec --config-dir")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "list add config connect cp edit export import plugin remove rename show ping rsync doctor tags history backup update exec --config-dir")" -- "$cur" )
       ;;
 
   esac

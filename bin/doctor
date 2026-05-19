@@ -230,6 +230,13 @@ else
 	check_fail "Required tools:" "missing: ${_missing_tools[*]}"
 fi
 
+# 6. Optional tools
+if command -v openssl >/dev/null 2>&1; then
+	check_ok "openssl:" "$(command -v openssl) (optional, for password encryption)"
+else
+	printf "  %-26s [INFO] %s\n" "openssl:" "not found — optional, needed for password encryption"
+fi
+
 # 6. Server count
 _server_count=0
 if [ -d "$SSHM0_CONFIG_DIR/servers" ]; then
