@@ -11,6 +11,8 @@ source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger opt filter "filter by name pattern" --short f
 # @parseArger flag long "show extended info" --short l
 # @parseArger flag recent "show recently connected servers first" --short r
+# @parseArger opt group "filter by group" --short g
+# @parseArger flag tree "show servers organized by groups"
 # @parseArger-declarations-end
 
 # @parseArger-utils
@@ -47,9 +49,11 @@ _optional_positionals=();
 # OPTIONALS ARGUMENTS
 _arg_tag=
 _arg_filter=
+_arg_group=
 # FLAGS
 _arg_long="off"
 _arg_recent="off"
+_arg_tree="off"
 # NESTED
 _verbose_level="0";
 
@@ -66,8 +70,10 @@ print_help()
 	echo -e "	-f, --filter <filter>: filter by name pattern"
 	echo -e "	-l|--long|--no-long: show extended info"
 	echo -e "	-r|--recent|--no-recent: show recently connected servers first"
+	echo -e "	-g, --group <group>: filter by group"
+	echo -e "	--tree|--no-tree: show servers organized by groups"
 	echo -e "Usage :
-	$0 [--tag <value>] [--filter <value>] [--[no-]long] [--[no-]recent]";
+	$0 [--tag <value>] [--filter <value>] [--group <value>] [--[no-]long] [--[no-]recent] [--[no-]tree]";
 	fi
 
 }
@@ -146,6 +152,25 @@ parse_commandline()
 			--no-long)
 				_arg_long="off"
 				;;
+			
+			-g|--group)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_group="$2"
+				shift
+				;;
+			--group=*)
+				_arg_group="${_key##--group=}"
+				;;
+			-g*)
+				_arg_group="${_key##-g}"
+				;;
+			
+			--tree)
+				_arg_tree="on"
+				;;
+			--no-tree)
+				_arg_tree="off"
+				;;
 			-h|--help)
 				print_help;
 				exit 0;
@@ -221,6 +246,9 @@ print_debug()
 	echo -e "	tag: ${_arg_tag}";
 	echo -e "	filter: ${_arg_filter}";
 	echo -e "	long: ${_arg_long}";
+	echo -e "	recent: ${_arg_recent}";
+	echo -e "	group: ${_arg_group}";
+	echo -e "	tree: ${_arg_tree}";
 
 }
 
@@ -255,6 +283,7 @@ for _server_config in "$SSHM0_CONFIG_DIR/servers/"*; do
 	sshm0_server_ip=""
 	sshm0_server_user=""
 	sshm0_server_tags=()
+	sshm0_server_group=""
 	# shellcheck source=../server.dist
 	source "$_server_config"
 
@@ -271,6 +300,10 @@ for _server_config in "$SSHM0_CONFIG_DIR/servers/"*; do
 			fi
 		done
 		[ "$_found_tag" -eq 1 ] || continue
+	fi
+
+	if [ -n "$_arg_group" ]; then
+		[ "$sshm0_server_group" = "$_arg_group" ] || continue
 	fi
 
 	_matching+=("$_name")
@@ -294,19 +327,39 @@ if [ "$_arg_recent" = "on" ]; then
 	done <<< "$_sorted"
 fi
 
-for _name in "${_matching[@]}"; do
-	if [ "$_arg_long" = "on" ]; then
-		sshm0_server_ip=""
-		sshm0_server_user=""
-		sshm0_server_tags=()
-		# shellcheck source=../server.dist
+if [ "$_arg_tree" = "on" ]; then
+	declare -A _tree_groups
+	_group_list=""
+	for _name in "${_matching[@]}"; do
+		sshm0_server_group=""
 		source "$SSHM0_CONFIG_DIR/servers/$_name"
-		_tags_str=""
-		if [ ${#sshm0_server_tags[@]} -gt 0 ]; then
-			_tags_str="$(IFS=,; echo "${sshm0_server_tags[*]}")"
+		_grp="${sshm0_server_group:-ungrouped}"
+		if [[ -z "${_tree_groups[$_grp]+x}" ]]; then
+			_tree_groups["$_grp"]=""
+			_group_list+="$_grp"$'\n'
 		fi
-		printf '%-20s %-15s %-10s [%s]\n' "$_name" "$sshm0_server_ip" "$sshm0_server_user" "$_tags_str"
-	else
-		echo "$_name"
-	fi
-done
+		_tree_groups["$_grp"]+="  $_name"$'\n'
+	done
+	while IFS= read -r _grp; do
+		[ -z "$_grp" ] && continue
+		echo "${_grp}:"
+		printf '%s' "${_tree_groups[$_grp]}"
+	done <<< "$(printf '%s' "$_group_list" | sort)"
+else
+	for _name in "${_matching[@]}"; do
+		if [ "$_arg_long" = "on" ]; then
+			sshm0_server_ip=""
+			sshm0_server_user=""
+			sshm0_server_tags=()
+			# shellcheck source=../server.dist
+			source "$SSHM0_CONFIG_DIR/servers/$_name"
+			_tags_str=""
+			if [ ${#sshm0_server_tags[@]} -gt 0 ]; then
+				_tags_str="$(IFS=,; echo "${sshm0_server_tags[*]}")"
+			fi
+			printf '%-20s %-15s %-10s [%s]\n' "$_name" "$sshm0_server_ip" "$sshm0_server_user" "$_tags_str"
+		else
+			echo "$_name"
+		fi
+	done
+fi

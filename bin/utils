@@ -85,6 +85,49 @@ sshm0_load_server() {
   return 0
 }
 
+sshm0_validate_server() {
+  local _ip="$1" _port="$2" _user="$3" _auth="$4" _key="$5"
+
+  if [ -z "$_ip" ]; then
+    echo "Error: IP/hostname must not be empty" >&2
+    return 1
+  fi
+  if ! [[ "$_ip" =~ ^[a-zA-Z0-9]([a-zA-Z0-9._:-]*[a-zA-Z0-9])?$ ]]; then
+    echo "Error: invalid IP/hostname '$_ip'" >&2
+    return 1
+  fi
+
+  if [ -z "$_port" ]; then
+    echo "Error: port must not be empty" >&2
+    return 1
+  fi
+  if ! [[ "$_port" =~ ^[0-9]+$ ]] || [ "$_port" -lt 1 ] || [ "$_port" -gt 65535 ]; then
+    echo "Error: port must be numeric and between 1-65535" >&2
+    return 1
+  fi
+
+  if [ -z "$_user" ]; then
+    echo "Error: user must not be empty" >&2
+    return 1
+  fi
+
+  if [ "$_auth" = "key" ] && [ -z "$_key" ]; then
+    echo "Error: key path must be provided when auth is 'key'" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+sshm0_get_proxy_args() {
+  (
+    sshm0_load_server "$1" || exit 1
+    [ -n "$sshm0_server_proxy" ] || exit 1
+    sshm0_load_server "$sshm0_server_proxy" || exit 1
+    echo "${sshm0_server_user}@${sshm0_server_ip}:${sshm0_server_port}"
+  )
+}
+
 sshm0_record_connection() {
   local _history_file="$SSHM0_CONFIG_DIR/history"
   local _timestamp

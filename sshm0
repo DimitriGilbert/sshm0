@@ -10,7 +10,7 @@ export SSHM0_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")";pwd -P);
 source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger-leftovers leftovers
 # @parseArger-declarations
-# @parseArger pos target "what to do" --subcommand-directory "bin" --subcommand-use-leftovers --subcommand --one-of "list" --one-of "add" --one-of "config" --one-of "connect" --one-of "cp" --one-of "edit" --one-of "export" --one-of "import" --one-of "plugin" --one-of "rename" --one-of "show" --one-of "ping" --one-of "rsync" --one-of "doctor" --one-of "history" --one-of "tags"
+# @parseArger pos target "what to do" --subcommand-directory "bin" --subcommand-use-leftovers --subcommand --one-of "list" --one-of "add" --one-of "config" --one-of "connect" --one-of "cp" --one-of "edit" --one-of "export" --one-of "import" --one-of "plugin" --one-of "rename" --one-of "show" --one-of "ping" --one-of "rsync" --one-of "doctor" --one-of "history" --one-of "tags" --one-of "backup"
 # @parseArger opt config-dir "directory containing the configurations" --default-value "$HOME/.config/sshm0"
 # @parseArger-declarations-end
 
@@ -46,7 +46,7 @@ begins_with_short_option()
 _positionals=();
 _optional_positionals=();
 _arg_target="";
-_one_of_arg_target=("list" "add" "config" "connect" "cp" "edit" "export" "import" "plugin" "remove" "rename" "show" "ping" "rsync" "doctor" "tags" "history" );
+_one_of_arg_target=("list" "add" "config" "connect" "cp" "edit" "export" "import" "plugin" "remove" "rename" "show" "ping" "rsync" "doctor" "tags" "history" "backup" );
 _arg_subcommand_arg="_arg_target";
 __subcommand=();
 # OPTIONALS ARGUMENTS

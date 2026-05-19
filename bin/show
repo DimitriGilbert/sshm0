@@ -224,6 +224,8 @@ if sshm0_server_exists "$_arg_name"; then
 		_cd_display="$sshm0_server_cd"
 	fi
 
+	_timeout_display="${sshm0_server_timeout:-10}"
+
 	_exec_display="(none)"
 	if [ ${#sshm0_server_exec_before[@]} -gt 0 ]; then
 		_exec_display="${sshm0_server_exec_before[*]}"
@@ -237,7 +239,13 @@ if sshm0_server_exists "$_arg_name"; then
 	echo "Password: $_pw_display"
 	echo "Key:    $_key_display"
 	echo "CD:     $_cd_display"
+	echo "Timeout: ${_timeout_display}s"
 	echo "Exec:   $_exec_display"
+	_group_display="(none)"
+	if [ -n "$sshm0_server_group" ]; then
+		_group_display="$sshm0_server_group"
+	fi
+	echo "Group:  $_group_display"
 else
 	echo "Server $_arg_name not found"
 	exit 1

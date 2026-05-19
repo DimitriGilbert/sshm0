@@ -37,7 +37,7 @@ _sshm0_completions() {
       ;;
 
     'list'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--tag -t --filter -f --long -l --recent -r")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--tag -t --filter -f --long -l --recent -r --group -g --tree --no-tree")" -- "$cur" )
       ;;
 
     'connect'*)
@@ -49,11 +49,11 @@ _sshm0_completions() {
       ;;
 
     'edit'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true) --ip --user --password -p --key -i --auth --port --connect --no-connect -c --tag -t")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true) --ip --user --password -p --key -i --auth --port --connect --no-connect -c --tag -t --group -g")" -- "$cur" )
       ;;
 
     'add'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--password --pass --pwd -p --key -i --auth -a --port -P --force --no-force -f --connect --no-connect -c --tag -t")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--password --pass --pwd -p --key -i --auth -a --port -P --force --no-force -f --connect --no-connect -c --tag -t --group -g")" -- "$cur" )
       ;;
 
     'cp'*)
@@ -92,12 +92,16 @@ _sshm0_completions() {
       while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "")" -- "$cur" )
       ;;
 
+    'backup'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--output -o --restore --yes --no-yes -y")" -- "$cur" )
+      ;;
+
     'tags'*)
       while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--long -l")" -- "$cur" )
       ;;
 
     *)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "list add config connect cp edit export import plugin remove rename show ping doctor tags history --config-dir")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "list add config connect cp edit export import plugin remove rename show ping doctor tags history backup --config-dir")" -- "$cur" )
       ;;
 
   esac

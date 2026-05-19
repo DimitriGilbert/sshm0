@@ -248,11 +248,17 @@ if sshm0_load_server "$_server_name"; then
 		_dest="${sshm0_server_user}@${sshm0_server_ip}:$_dest";
 	fi
 
-  _ssh_cmd="ssh -p ${sshm0_server_port}";
+  _ssh_cmd="ssh -p ${sshm0_server_port} -o ConnectTimeout=${sshm0_server_timeout:-10}";
 
   if [ "$sshm0_server_auth" == "key" ]; then
     _ssh_cmd+=" -i $sshm0_server_key";
   fi
+
+	_proxy_jump="$(sshm0_get_proxy_args "$_server_name")"
+	if [ -n "$_proxy_jump" ]; then
+		log "Using ProxyJump: $_proxy_jump" 2;
+		_ssh_cmd+=" -o ProxyJump=$_proxy_jump"
+	fi
 
   if [ "$sshm0_server_auth" == "password" ] && [ "$sshm0_server_password" != "" ]; then
 		if [ "$sshm0_server_password_bad" != "I KNOW" ]; then

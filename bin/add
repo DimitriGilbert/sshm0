@@ -17,6 +17,8 @@ source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger flag force "force overwrite if server exists" --short f
 # @parseArger flag connect "connect to server" --short c
 # @parseArger opt tag "comma-separated tags" --short t
+# @parseArger opt proxy "proxy jump server name" --short J
+# @parseArger opt timeout "connection timeout in seconds" --default-value "10"
 # @parseArger-declarations-end
 
 # @parseArger-utils
@@ -63,6 +65,9 @@ _arg_port="22"
 _arg_force="off"
 _arg_connect="off"
 _arg_tag=
+_arg_group=
+_arg_proxy=
+_arg_timeout="10"
 # NESTED
 _verbose_level="0";
 
@@ -85,8 +90,11 @@ print_help()
 	echo -e "	-f|--force|--no-force: force overwrite if server exists"
 	echo -e "	-c|--connect|--no-connect: connect to server"
 	echo -e "	-t, --tag <tag>: comma-separated tags"
+	echo -e "	-J, --proxy <proxy>: proxy jump server name"
+	echo -e "	--timeout <timeout>: connection timeout in seconds [default: ' 10 ']"
+	echo -e "	-g, --group <group>: server group"
 	echo -e "Usage :
-	$0 <name> <ip> <user> [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--tag <value>] [--[no-]force] [--[no-]connect]";
+	$0 <name> <ip> <user> [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--tag <value>] [--group <value>] [--proxy <value>] [--timeout <value>] [--[no-]force] [--[no-]connect]";
 	fi
 
 }
@@ -198,6 +206,39 @@ parse_commandline()
 				_arg_tag="${_key##-t}"
 				;;
 			
+			--timeout)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_timeout="$2"
+				shift
+				;;
+			--timeout=*)
+				_arg_timeout="${_key##--timeout=}"
+				;;
+			
+			-g|--group)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_group="$2"
+				shift
+				;;
+			--group=*)
+				_arg_group="${_key##--group=}"
+				;;
+			-g*)
+				_arg_group="${_key##-g}"
+				;;
+			
+			-J|--proxy)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_proxy="$2"
+				shift
+				;;
+			--proxy=*)
+				_arg_proxy="${_key##--proxy=}"
+				;;
+			-J*)
+				_arg_proxy="${_key##-J}"
+				;;
+			
 			-f|--force)
 				_arg_force="on"
 				;;
@@ -296,6 +337,9 @@ print_debug()
 	echo -e "	force: ${_arg_force}";
 	echo -e "	connect: ${_arg_connect}";
 	echo -e "	tag: ${_arg_tag}";
+	echo -e "	timeout: ${_arg_timeout}";
+	echo -e "	group: ${_arg_group}";
+	echo -e "	proxy: ${_arg_proxy}";
 
 }
 
@@ -337,6 +381,8 @@ if [ -z "$_arg_name" ] && [ -z "$_arg_ip" ]; then
 	read -rp "Port [22]: " _arg_port
 	_arg_port="${_arg_port:-22}"
 	read -rp "Tags (comma-separated): " _arg_tag
+	read -rp "Group: " _arg_group
+	read -rp "Proxy server [none]: " _arg_proxy
 	echo ""
 fi
 
@@ -349,15 +395,17 @@ if [[ "${_arg_force}" == "on" ]];then
 fi
 
 if [ "$dowrite" -eq 0 ]; then
+	sshm0_validate_server "$_arg_ip" "$_arg_port" "$_arg_user" "$_arg_auth" "$_arg_key" || exit 1
 	_tmpcfg="$(mktemp)"
 	printf '# sshm0 server config\n' > "$_tmpcfg"
-	printf 'sshm0_server_ip=%s\nsshm0_server_user=%s\nsshm0_server_port=%s\nsshm0_server_auth=%s\nsshm0_server_password=%s\nsshm0_server_key=%s\nsshm0_server_cd=%s\nsshm0_server_exec_before=%s\n' \
+	printf 'sshm0_server_ip=%s\nsshm0_server_user=%s\nsshm0_server_port=%s\nsshm0_server_auth=%s\nsshm0_server_password=%s\nsshm0_server_key=%s\nsshm0_server_timeout=%s\nsshm0_server_cd=%s\nsshm0_server_exec_before=%s\n' \
 		"$(printf '%q' "$_arg_ip")" \
 		"$(printf '%q' "$_arg_user")" \
 		"$(printf '%q' "$_arg_port")" \
 		"$(printf '%q' "$_arg_auth")" \
 		"$(printf '%q' "$_arg_password")" \
 		"$(printf '%q' "$_arg_key")" \
+		"$(printf '%q' "$_arg_timeout")" \
 		"" \
 		"()" \
 		>> "$_tmpcfg" || { rm -f "$_tmpcfg"; die "Failed to write server config" 1; }
@@ -372,6 +420,8 @@ if [ "$dowrite" -eq 0 ]; then
 		done
 	fi
 	printf 'sshm0_server_tags=(%s)\n' "$_tags_value" >> "$_tmpcfg"
+	printf 'sshm0_server_group=%s\n' "$(printf '%q' "$_arg_group")" >> "$_tmpcfg"
+	printf 'sshm0_server_proxy=%s\n' "$(printf '%q' "$_arg_proxy")" >> "$_tmpcfg"
 	chmod 600 "$_tmpcfg" || { rm -f "$_tmpcfg"; die "Failed to chmod server config" 1; }
 	mv "$_tmpcfg" "$(sshm0_server_config_path "$_arg_name")" || { rm -f "$_tmpcfg"; die "Failed to save server config" 1; }
 	log "Writting to $(sshm0_server_config_path "$_arg_name")" 2;

@@ -13,6 +13,7 @@ sshm0:
 - import
 - ping
 - doctor
+- backup
 - --config-dir
 sshm0 list:
 - --tag
@@ -23,6 +24,10 @@ sshm0 list:
 - -l
 - --recent
 - -r
+- --group
+- -g
+- --tree
+- --no-tree
 sshm0 add:
 - --password
 - --pass
@@ -42,6 +47,8 @@ sshm0 add:
 - -c
 - --tag
 - -t
+- --group
+- -g
 
 sshm0 add*--key:
 - $(dir="$HOME/.ssh"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
@@ -67,6 +74,8 @@ sshm0 edit:
 - -c
 - --tag
 - -t
+- --group
+- -g
 
 sshm0 edit*--key:
 - $(dir="$HOME/.ssh"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
@@ -109,6 +118,13 @@ sshm0 history:
 - -n
 - --server
 - -s
+sshm0 backup:
+- --output
+- -o
+- --restore
+- --yes
+- --no-yes
+- -y
 
 
 
