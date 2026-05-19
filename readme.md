@@ -9,6 +9,7 @@ Built with [parseArger](https://github.com/DimitriGilbert/parseArger).
 - Add/edit/remove/rename servers by name
 - Connect with a single command (`sshm0 connect <name>`)
 - Copy files via scp wrapper (`sshm0 cp`)
+- Sync files via rsync wrapper (`sshm0 rsync`)
 - Interactive mode — run `sshm0 add` with no args for a prompt
 - Tag servers and filter by tag
 - Connection history with `--recent` sort
@@ -116,6 +117,20 @@ Uses scp under the hood. Prefix server paths with `<name>>`:
 ```bash
 sshm0 cp ./localfile.conf web1:/etc/myapp/config.conf
 sshm0 cp web1:/var/log/app.log ./app.log
+```
+
+### rsync
+
+```bash
+sshm0 rsync <source> <destination> [rsync-options]
+```
+
+Uses rsync under the hood with `-avz` defaults. Prefix server paths with `<name>:`. Any trailing arguments are passed to rsync.
+
+```bash
+sshm0 rsync ./src pi:~/project/src
+sshm0 rsync pi:~/project/src ./src --exclude node_modules
+sshm0 rsync . pi:~/project --exclude node_modules/.cache --delete
 ```
 
 ### list
@@ -293,5 +308,5 @@ No additional setup required after installation.
 ## Requirements
 
 - Bash 4.0+ (uses associative arrays)
-- `ssh` / `scp`
+- `ssh` / `scp` / `rsync`
 - Standard Unix tools (`date`, `mktemp`, `setsid`)

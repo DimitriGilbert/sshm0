@@ -42,6 +42,21 @@ const cpDemo: CommandEntry[] = [
   },
 ];
 
+const rsyncDemo: CommandEntry[] = [
+  {
+    prompt: "sshm0 rsync ./src pi:~/project/src",
+    output: "Syncing ./src -> pi:~/project/src",
+    typingSpeed: 35,
+    delay: 800,
+  },
+  {
+    prompt: "sshm0 rsync . pi:~/project --exclude node_modules/.cache",
+    output: "Syncing . -> pi:~/project",
+    typingSpeed: 35,
+    delay: 800,
+  },
+];
+
 function Docs() {
   return (
     <Layout className="pt-20">
@@ -226,6 +241,27 @@ sshm0 list --tag production --long`}</code>
               </pre>
               <Terminable
                 commands={cpDemo}
+                titleBarVariant="macos"
+                title="terminal"
+                height="min-h-[160px] max-h-[300px]"
+              />
+            </CommandSection>
+
+            {/* ── rsync ────────────────────────────────────────────── */}
+            <CommandSection id="rsync" title="rsync">
+              <p>
+                Sync files between local and remote. Uses rsync under the hood
+                with <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-sm">-avz</code> defaults. Prefix server paths with{" "}
+                <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-sm">
+                  &lt;name&gt;:
+                </code>
+                . Any trailing arguments are passed to rsync.
+              </p>
+              <pre className="not-prose overflow-x-auto rounded-lg bg-zinc-900 p-4 text-sm text-zinc-100">
+                <code>sshm0 rsync &lt;source&gt; &lt;destination&gt; [rsync-options]</code>
+              </pre>
+              <Terminable
+                commands={rsyncDemo}
                 titleBarVariant="macos"
                 title="terminal"
                 height="min-h-[160px] max-h-[300px]"
@@ -588,6 +624,10 @@ declare -A sshm0_plugins
                   /{" "}
                   <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-sm">
                     scp
+                  </code>{" "}
+                  /{" "}
+                  <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-sm">
+                    rsync
                   </code>
                 </li>
                 <li>

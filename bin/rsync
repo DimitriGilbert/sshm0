@@ -1,17 +1,15 @@
 #!/bin/bash
 
 # @parseArger-begin
-# @parseArger-help "sshM0: A CLI ssh manager" --option "help" --short-option "h"
+# @parseArger-help "rsync" --option "help" --short-option "h"
 # @parseArger-version "0.3.1" --option "version" --short-option "v"
 # @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
-# @parseArger-set export SSHM0_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")";pwd -P);
-export SSHM0_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")";pwd -P);
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
 source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger-leftovers leftovers
 # @parseArger-declarations
-# @parseArger pos target "what to do" --subcommand-directory "bin" --subcommand-use-leftovers --subcommand --one-of "list" --one-of "add" --one-of "connect" --one-of "cp" --one-of "edit" --one-of "export" --one-of "plugin" --one-of "rename" --one-of "show" --one-of "ping" --one-of "rsync" --one-of "doctor"
-# @parseArger opt config-dir "directory containing the configurations" --default-value "$HOME/.config/sshm0"
+# @parseArger pos src "source" --complete "file"
+# @parseArger pos dest "destination" --complete "file"
 # @parseArger-declarations-end
 
 # @parseArger-utils
@@ -45,12 +43,9 @@ begins_with_short_option()
 # POSITIONALS ARGUMENTS
 _positionals=();
 _optional_positionals=();
-_arg_target="";
-_one_of_arg_target=("list" "add" "connect" "cp" "edit" "export" "plugin" "remove" "rename" "show" "ping" "rsync" "doctor" );
-_arg_subcommand_arg="_arg_target";
-__subcommand=();
+_arg_src="";
+_arg_dest="";
 # OPTIONALS ARGUMENTS
-_arg_config_dir="$HOME/.config/sshm0"
 # FLAGS
 # NESTED
 # LEFTOVERS
@@ -63,25 +58,14 @@ print_help()
 {
 	_triggerSCHelp=1;
 
-	if [ "$__cli_arg_count" -ge 2 ]; then
-		# echo "$0 sub command help
-	#"
-		_triggerSCHelp=0;
-		_helpHasBeenPrinted=0;
-	else
-	
-
 	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
 		_helpHasBeenPrinted=0;
-		echo -e "sshM0: A CLI ssh manager:"
-	echo -e "	target: what to do [one of 'list' 'add' 'connect' 'cp' 'edit' 'export' 'plugin' 'remove' 'rename' 'show' 'ping' 'rsync' 'doctor']"
-	echo -e "	--config-dir <config-dir>: directory containing the configurations [default: ' $HOME/.config/sshm0 ']"
+		echo -e "rsync:"
+	echo -e "	src: source"
+	echo -e "	dest: destination"
 	echo -e "Usage :
-	$0 <target> [--config-dir <value>]";
+	$0 <src> <dest> [rsync-options]";
 	fi
-
-	fi
-	
 
 }
 
@@ -123,20 +107,13 @@ parse_commandline()
 	do
 		_key="$1"
 		case "$_key" in
-			--config-dir)
-				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
-				_arg_config_dir="$2"
-				shift
-				;;
-			--config-dir=*)
-				_arg_config_dir="${_key##--config-dir=}"
-				;;
-			
 			-h|--help)
 				print_help;
+				exit 0;
 				;;
 			-h*)
 				print_help;
+				exit 0;
 				;;
 			-v|--version)
 				print_version;
@@ -176,9 +153,9 @@ parse_commandline()
 
 handle_passed_args_count()
 {
-	local _required_args_string="target"
-	if [ "${_positionals_count}" -lt 1 ] && [ "$_helpHasBeenPrinted" == "1" ];then
-		_PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 1 (namely: $_required_args_string), but got only ${_positionals_count}.
+	local _required_args_string="src dest"
+	if [ "${_positionals_count}" -lt 2 ] && [ "$_helpHasBeenPrinted" == "1" ];then
+		_PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 2 (namely: $_required_args_string), but got only ${_positionals_count}.
 	${_positionals[*]}" 1;
 	fi
 }
@@ -187,8 +164,8 @@ handle_passed_args_count()
 assign_positional_args()
 {
 	local _positional_name _shift_for=$1;
-	_positional_names="_arg_target ";
-	_leftovers_count=$((${#_positionals[@]} - 1))
+	_positional_names="_arg_src _arg_dest ";
+	_leftovers_count=$((${#_positionals[@]} - 2))
 	for ((ii = 0; ii < _leftovers_count; ii++));do
 		_positional_names="$_positional_names _arg_leftovers[$((ii + 0))]";
 	done
@@ -198,20 +175,6 @@ assign_positional_args()
 		test $# -gt 0 || break;
 		if ! [[ "$_positional_name" =~ "_arg_leftovers" ]];then
 			eval "if [ \"\$_one_of${_positional_name}\" != \"\" ];then [[ \"\${_one_of${_positional_name}[*]}\" =~ \"\${1}\" ]];fi" || die "${_positional_name} must be one of: $(eval "echo \"\${_one_of${_positional_name}[*]}\"")" 1;
-			
-			if [ "$_arg_subcommand_arg" == "$_positional_name" ];then
-				if [ -f "bin/${1}" ] && command -v "bin/${1}" > /dev/null 2>&1;then
-					__subcommand+=("bin/${1}");
-				elif [ -f "$_SCRIPT_DIR/bin/${1}" ] && command -v "$_SCRIPT_DIR/bin/${1}" > /dev/null 2>&1;then
-					__subcommand+=("$_SCRIPT_DIR/bin/${1}");
-				elif [[ "bin/" == $(basename "$_SCRIPT_DIR")* ]];then
-					cmdToSub="$(basename "$_SCRIPT_DIR")";
-					cmdsubDir="bin/";
-					__subcommand+=("$_SCRIPT_DIR${cmdsubDir#"${cmdToSub}"}${1}");
-				else
-					__subcommand+=("$_SCRIPT_DIR/bin/${1}");
-				fi
-			fi
 		fi
 		eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an ParseArger bug." 1;
 		shift;
@@ -224,8 +187,8 @@ print_debug()
 	# shellcheck disable=SC2145
 	echo "DEBUG: $0 $@";
 	
-	echo -e "	target: ${_arg_target}";
-	echo -e "	config-dir: ${_arg_config_dir}";
+	echo -e "	src: ${_arg_src}";
+	echo -e "	dest: ${_arg_dest}";
 	echo -e "	leftovers: ${_arg_leftovers[*]}";
 
 }
@@ -237,46 +200,81 @@ print_version()
 }
 
 
-on_interrupt() {
-	die Process aborted! 130;
+_on_interrupt() {
+  if [ -n "${_tmpps:-}" ] && [ -f "$_tmpps" ]; then
+    rm -f "$_tmpps"
+  fi
+  unset SSH_PASSWORD SSH_ASKPASS DISPLAY
+  exit 130
 }
 
 
 parse_commandline "$@";
 handle_passed_args_count;
 assign_positional_args 1 "${_positionals[@]}";
-trap on_interrupt INT;
+trap _on_interrupt INT TERM HUP;
 
 
-__subcommand+=("${_arg_leftovers[@]}");
-if [ "$_triggerSCHelp" == "0" ];then
-	__subcommand+=("--help");
-fi
-if [ "$_verbose_level" -ne "0" ];then
-	__subcommand+=("--verbose" "$_verbose_level");
-fi
 
 # @parseArger-parsing-end
 # print_debug "$@"
 # @parseArger-end
 
-export SSHM0_CONFIG_DIR="$_arg_config_dir";
+#shellcheck source=../server.dist
 
-if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
-    echo "Error: sshm0 requires Bash 4 or later (current: $BASH_VERSION)" >&2
-    exit 1
+_src="$_arg_src";
+_dest="$_arg_dest";
+_server_name="";
+_rmt="";
+
+if [[ "$_src" =~ ^([^/]+):(.+)$ ]]; then
+	_server_name="${BASH_REMATCH[1]}";
+	_src="${BASH_REMATCH[2]}";
+	_rmt="src";
+elif [[ "$_dest" =~ ^([^/]+):(.+)$ ]]; then
+	_server_name="${BASH_REMATCH[1]}";
+	_dest="${BASH_REMATCH[2]}";
+	_rmt="dest";
+else
+	die "source or destination must be in the form of <server>:<path>" 1;
 fi
 
-if [ ! -d "$SSHM0_CONFIG_DIR" ] || [ ! -f "$SSHM0_CONFIG_DIR/config" ]; then
-	sshm0_install;
+if sshm0_load_server "$_server_name"; then
+	# shellcheck source=../server.dist
+		
+	if [[ "$_rmt" == "src" ]]; then
+		_src="${sshm0_server_user}@${sshm0_server_ip}:$_src";
+	elif [[ "$_rmt" == "dest" ]]; then
+		_dest="${sshm0_server_user}@${sshm0_server_ip}:$_dest";
+	fi
+
+  _ssh_cmd="ssh -p ${sshm0_server_port}";
+
+  if [ "$sshm0_server_auth" == "key" ]; then
+    _ssh_cmd+=" -i $sshm0_server_key";
+  fi
+
+  if [ "$sshm0_server_auth" == "password" ] && [ "$sshm0_server_password" != "" ]; then
+		if [ "$sshm0_server_password_bad" != "I KNOW" ]; then
+			log "Using auth password BAAAADDDDD !!" -1;
+		fi
+		_tmpps=""
+		_tmpps="$(mktemp)";
+		printf '#!/bin/sh\nprintf '\''%%s'\'' "$SSH_PASSWORD"' > "$_tmpps";
+		chmod 700 "$_tmpps";
+		export SSH_PASSWORD="$sshm0_server_password"
+		export SSH_ASKPASS="$_tmpps";
+		export DISPLAY="YOURDOINGITWRONG";
+  fi
+
+	log "rsync $_server_name :\n${_src} to ${_dest}" 2;
+
+	setsid rsync -avz -e "$_ssh_cmd" "${_arg_leftovers[@]}" "$_src" "$_dest";
+  
+	if [ -n "$_tmpps" ] && [ -f "$_tmpps" ]; then
+		rm -f "$_tmpps";
+	fi
+	unset SSH_PASSWORD SSH_ASKPASS DISPLAY
+else
+  die "Server '$_server_name' not found." 1;
 fi
-
-# shellcheck source=config.dist
-source "$SSHM0_CONFIG_DIR/config";
-
-sshm0_migrate;
-
-log "subcommand :" 3;
-log "\t\t${__subcommand[*]}" 3;
-
-"${__subcommand[@]}";

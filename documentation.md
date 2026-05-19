@@ -4,7 +4,7 @@
 
 ```
 sshM0: A CLI ssh manager:
-	target: what to do [one of 'list' 'add' 'connect' 'cp' 'edit' 'plugin' 'remove' 'remove']
+	target: what to do [one of 'list' 'add' 'connect' 'cp' 'rsync' 'edit' 'plugin' 'remove' 'remove']
 	--config-dir <config-dir>: directory containing the configurations [default: ' $HOME/.config/sshm0 ']
 Usage :
 	sshm0 <target> [--config-dir <value>]
@@ -59,6 +59,18 @@ scp:
 	dest: destination
 Usage :
 	sshm0 cp <src> <dest>
+```
+
+## sshm0 rsync
+
+```
+sshm0 sub command help
+	
+rsync:
+	src: source
+	dest: destination
+Usage :
+	sshm0 rsync <src> <dest> [rsync-options]
 ```
 
 ## sshm0 edit

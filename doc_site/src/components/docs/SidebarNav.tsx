@@ -4,6 +4,7 @@ const sections = [
   { id: "add", label: "Add" },
   { id: "connect", label: "Connect" },
   { id: "cp", label: "Copy Files" },
+  { id: "rsync", label: "Rsync" },
   { id: "list", label: "List" },
   { id: "edit", label: "Edit" },
   { id: "remove", label: "Remove" },

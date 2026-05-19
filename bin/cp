@@ -227,13 +227,13 @@ _dest="$_arg_dest";
 _server_name="";
 _rmt="";
 
-if [[ "$_src" == *":/"* ]]; then
-	_server_name="$(echo "$_src" | cut -d ":" -f 1)";
-	_src="$(echo "$_src" | cut -d ":" -f 2)";
+if [[ "$_src" =~ ^([^/]+):(.+)$ ]]; then
+	_server_name="${BASH_REMATCH[1]}";
+	_src="${BASH_REMATCH[2]}";
 	_rmt="src";
-elif [[ "$_dest" == *":/"* ]]; then
-	_server_name="$(echo "$_dest" | cut -d ":" -f 1)";
-	_dest="$(echo "$_dest" | cut -d ":" -f 2)";
+elif [[ "$_dest" =~ ^([^/]+):(.+)$ ]]; then
+	_server_name="${BASH_REMATCH[1]}";
+	_dest="${BASH_REMATCH[2]}";
 	_rmt="dest";
 else
 	die "source or destination must be in the form of <server>:<path>" 1;
