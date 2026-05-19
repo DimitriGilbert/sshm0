@@ -46,7 +46,7 @@ begins_with_short_option()
 _positionals=();
 _optional_positionals=();
 _arg_target="";
-_one_of_arg_target=("list" "add" "config" "connect" "cp" "edit" "export" "import" "plugin" "remove" "rename" "show" "ping" "rsync" "doctor" "tags" "history" "backup" "update" "exec" );
+_one_of_arg_target=("list" "add" "config" "connect" "cp" "edit" "export" "import" "plugin" "remove" "rename" "show" "ping" "rsync" "doctor" "history" "tags" "backup" "exec" "update" );
 _arg_subcommand_arg="_arg_target";
 __subcommand=();
 # OPTIONALS ARGUMENTS

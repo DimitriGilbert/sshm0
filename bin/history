@@ -220,6 +220,9 @@ on_interrupt() {
 parse_commandline "$@";
 handle_passed_args_count;
 assign_positional_args 1 "${_positionals[@]}";
+if ! [[ "$_arg_count" =~ ^[1-9][0-9]*$ ]]; then
+	die "count must be a positive integer" 1
+fi
 trap on_interrupt INT;
 
 

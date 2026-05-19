@@ -249,7 +249,32 @@ if [ -n "$_arg_restore" ]; then
 			exit 0
 		fi
 	fi
+	_config_basename="$(basename "$SSHM0_CONFIG_DIR")"
+	_tar_list="$(tar -tzf "$_arg_restore")"
+	_tar_status=$?
+	if [ "$_tar_status" -ne 0 ]; then
+		die "Failed to inspect backup archive $_arg_restore (exit $_tar_status)" 1
+	fi
+	while IFS= read -r _member; do
+		[ -z "$_member" ] && continue
+		case "$_member" in
+			/*|*/../*|../*|*/..|..)
+				die "Unsafe backup archive member: $_member" 1
+				;;
+		esac
+		case "$_member" in
+			"$_config_basename"|"$_config_basename"/*)
+				;;
+			*)
+				die "Unexpected backup archive member: $_member" 1
+				;;
+		esac
+	done <<< "$_tar_list"
 	tar -xzf "$_arg_restore" -C "$(dirname "$SSHM0_CONFIG_DIR")"
+	_tar_status=$?
+	if [ "$_tar_status" -ne 0 ]; then
+		die "Failed to restore from $_arg_restore (exit $_tar_status)" 1
+	fi
 	log "Restored from: $_arg_restore" 1
 else
 	_backup_dir="$SSHM0_CONFIG_DIR/backups"
@@ -262,5 +287,9 @@ else
 		_output="$_backup_dir/sshm0-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
 	fi
 	tar -czf "$_output" -C "$(dirname "$SSHM0_CONFIG_DIR")" "$(basename "$SSHM0_CONFIG_DIR")"
+	_tar_status=$?
+	if [ "$_tar_status" -ne 0 ]; then
+		die "Failed to create backup $_output (exit $_tar_status)" 1
+	fi
 	log "Backup created: $_output" 1
 fi

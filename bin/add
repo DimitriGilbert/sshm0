@@ -383,6 +383,8 @@ if [ -z "$_arg_name" ] && [ -z "$_arg_ip" ]; then
 	read -rp "Tags (comma-separated): " _arg_tag
 	read -rp "Group: " _arg_group
 	read -rp "Proxy server [none]: " _arg_proxy
+	read -rp "Timeout in seconds [${_arg_timeout:-10}]: " _arg_timeout
+	_arg_timeout="${_arg_timeout:-10}"
 	echo ""
 fi
 
@@ -395,7 +397,7 @@ if [[ "${_arg_force}" == "on" ]];then
 fi
 
 if [ "$dowrite" -eq 0 ]; then
-	sshm0_validate_server "$_arg_ip" "$_arg_port" "$_arg_user" "$_arg_auth" "$_arg_key" || exit 1
+	sshm0_validate_server "$_arg_ip" "$_arg_port" "$_arg_user" "$_arg_auth" "$_arg_key" "$_arg_timeout" || exit 1
 	_enc_pw=$(sshm0_encrypt_password "$_arg_password")
 	_tmpcfg="$(mktemp)"
 	printf '# sshm0 server config\n' > "$_tmpcfg"

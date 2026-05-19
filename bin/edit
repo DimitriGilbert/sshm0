@@ -364,7 +364,7 @@ trap on_interrupt INT;
 
 if sshm0_load_server "$_arg_name"; then
 #shellcheck source=../server.dist
-	if [ -z "$_arg_ip" ] && [ -z "$_arg_user" ] && [ -z "$_arg_password" ] && [ -z "$_arg_key" ] && [ -z "$_arg_auth" ] && [ -z "$_arg_port" ] && [ -z "$_arg_tag" ] && [ -z "$_arg_group" ] && [ -z "$_arg_proxy" ]; then
+	if [ -z "$_arg_ip" ] && [ -z "$_arg_user" ] && [ -z "$_arg_password" ] && [ -z "$_arg_key" ] && [ -z "$_arg_auth" ] && [ -z "$_arg_port" ] && [ -z "$_arg_tag" ] && [ -z "$_arg_group" ] && [ -z "$_arg_proxy" ] && [ -z "$_arg_timeout" ]; then
 		echo "Editing server: $_arg_name (current values in brackets)"
 		read -rp "IP address [$sshm0_server_ip]: " _arg_ip
 		_arg_ip="${_arg_ip:-$sshm0_server_ip}"
@@ -387,6 +387,8 @@ if sshm0_load_server "$_arg_name"; then
 		_arg_group="${_arg_group:-$sshm0_server_group}"
 		read -rp "Proxy server [${sshm0_server_proxy:-none}]: " _arg_proxy
 		_arg_proxy="${_arg_proxy:-$sshm0_server_proxy}"
+		read -rp "Timeout in seconds [${sshm0_server_timeout:-10}]: " _arg_timeout
+		_arg_timeout="${_arg_timeout:-${sshm0_server_timeout:-10}}"
 		echo ""
 	fi
 	if [ "$_arg_ip" != "" ]; then
@@ -403,7 +405,8 @@ if sshm0_load_server "$_arg_name"; then
   _final_auth="${_arg_auth:-$sshm0_server_auth}"
   _final_password="${_arg_password:-$sshm0_server_password}"
   _final_key="${_arg_key:-$sshm0_server_key}"
-  sshm0_validate_server "$sshm0_server_ip" "$_final_port" "$sshm0_server_user" "$_final_auth" "$_final_key" || exit 1
+  _final_timeout="${_arg_timeout:-${sshm0_server_timeout:-10}}"
+  sshm0_validate_server "$sshm0_server_ip" "$_final_port" "$sshm0_server_user" "$_final_auth" "$_final_key" "$_final_timeout" || exit 1
 
 	if [ "$_arg_port" != "" ]; then
 		edArg+=("--port" "$_arg_port")

@@ -256,22 +256,22 @@ fi
 
 _imported=0
 _skipped=0
-_host_name=""
+_host_names=()
 _host_hostname=""
 _host_user=""
 _host_port=""
 _host_identity=""
 
+_reset_host() {
+	_host_names=()
+	_host_hostname=""
+	_host_user=""
+	_host_port=""
+	_host_identity=""
+}
+
 _flush_host() {
-	if [ -z "$_host_name" ]; then
-		return
-	fi
-	if [ -z "$_host_hostname" ]; then
-		_host_name=""
-		_host_hostname=""
-		_host_user=""
-		_host_port=""
-		_host_identity=""
+	if [ "${#_host_names[@]}" -eq 0 ]; then
 		return
 	fi
 	local _auth _key
@@ -283,74 +283,65 @@ _flush_host() {
 		_key=""
 	fi
 	local _port="${_host_port:-22}"
-	local _exists=0
-	if sshm0_server_exists "$_host_name"; then
-		_exists=1
+	local _host_name _exists _tmpcfg _config_path
+	if ! sshm0_validate_server "$_host_hostname" "$_port" "$_host_user" "$_auth" "$_key" "10"; then
+		_reset_host
+		die "Invalid host block in $_arg_file" 1
 	fi
-	if [ "$_exists" -eq 1 ] && [ "$_arg_force" = "off" ]; then
+	for _host_name in "${_host_names[@]}"; do
+		_config_path="$(sshm0_server_config_path "$_host_name")" || { _reset_host; die "Invalid server name: $_host_name" 1; }
+		_exists=0
+		if sshm0_server_exists "$_host_name"; then
+			_exists=1
+		fi
+		if [ "$_exists" -eq 1 ] && [ "$_arg_force" = "off" ]; then
+			if [ "$_arg_dry_run" = "on" ]; then
+				log "[DRY RUN] Would skip $_host_name: already exists" -2
+			else
+				log "Skipping $_host_name: already exists (use --force to overwrite)" -2
+			fi
+			_skipped=$((_skipped + 1))
+			continue
+		fi
 		if [ "$_arg_dry_run" = "on" ]; then
-			log "[DRY RUN] Would skip $_host_name: already exists" -2
-		else
-			log "Skipping $_host_name: already exists (use --force to overwrite)" -2
+			if [ "$_exists" -eq 1 ]; then
+				log "[DRY RUN] Would overwrite: $_host_name ($_host_hostname:${_port}) user=$_host_user auth=$_auth" 1
+			else
+				log "[DRY RUN] Would import: $_host_name ($_host_hostname:${_port}) user=$_host_user auth=$_auth" 1
+			fi
+			_imported=$((_imported + 1))
+			continue
 		fi
-		_skipped=$((_skipped + 1))
-		_host_name=""
-		_host_hostname=""
-		_host_user=""
-		_host_port=""
-		_host_identity=""
-		return
-	fi
-	if [ "$_arg_dry_run" = "on" ]; then
-		if [ "$_exists" -eq 1 ]; then
-			log "[DRY RUN] Would overwrite: $_host_name ($_host_hostname:${_port}) user=$_host_user auth=$_auth" 1
-		else
-			log "[DRY RUN] Would import: $_host_name ($_host_hostname:${_port}) user=$_host_user auth=$_auth" 1
+		_tmpcfg="$(mktemp)" || { _reset_host; die "Failed to create temporary file" 1; }
+		printf '# sshm0 server config\n' > "$_tmpcfg"
+		printf 'sshm0_server_ip=%s\nsshm0_server_user=%s\nsshm0_server_port=%s\nsshm0_server_auth=%s\nsshm0_server_password=%s\nsshm0_server_key=%s\nsshm0_server_cd=%s\nsshm0_server_exec_before=%s\n' \
+			"$(printf '%q' "$_host_hostname")" \
+			"$(printf '%q' "$_host_user")" \
+			"$(printf '%q' "$_port")" \
+			"$(printf '%q' "$_auth")" \
+			"$(printf '%q' "")" \
+			"$(printf '%q' "$_key")" \
+			"" \
+			"()" \
+			>> "$_tmpcfg" || { rm -f "$_tmpcfg"; _reset_host; die "Failed to write server config" 1; }
+		local _tags_value=""
+		if [ -n "$_arg_tag" ]; then
+			local IFS=','
+			read -ra _tag_parts <<< "$_arg_tag"
+			for _tp in "${_tag_parts[@]}"; do
+				_tp="${_tp# }"; _tp="${_tp% }"
+				[ -z "$_tp" ] && continue
+				[ -n "$_tags_value" ] && _tags_value+=" "
+				_tags_value+="$(printf '%q' "$_tp")"
+			done
 		fi
+		printf 'sshm0_server_tags=(%s)\n' "$_tags_value" >> "$_tmpcfg"
+		chmod 600 "$_tmpcfg" || { rm -f "$_tmpcfg"; _reset_host; die "Failed to chmod server config" 1; }
+		mv "$_tmpcfg" "$_config_path" || { rm -f "$_tmpcfg"; _reset_host; die "Failed to save server config" 1; }
+		log "Imported $_host_name" 1
 		_imported=$((_imported + 1))
-		_host_name=""
-		_host_hostname=""
-		_host_user=""
-		_host_port=""
-		_host_identity=""
-		return
-	fi
-	local _tmpcfg
-	_tmpcfg="$(mktemp)" || die "Failed to create temporary file" 1
-	printf '# sshm0 server config\n' > "$_tmpcfg"
-	printf 'sshm0_server_ip=%s\nsshm0_server_user=%s\nsshm0_server_port=%s\nsshm0_server_auth=%s\nsshm0_server_password=%s\nsshm0_server_key=%s\nsshm0_server_cd=%s\nsshm0_server_exec_before=%s\n' \
-		"$(printf '%q' "$_host_hostname")" \
-		"$(printf '%q' "$_host_user")" \
-		"$(printf '%q' "$_port")" \
-		"$(printf '%q' "$_auth")" \
-		"$(printf '%q' "")" \
-		"$(printf '%q' "$_key")" \
-		"" \
-		"()" \
-		>> "$_tmpcfg" || { rm -f "$_tmpcfg"; die "Failed to write server config" 1; }
-	local _tags_value=""
-	if [ -n "$_arg_tag" ]; then
-		local IFS=','
-		read -ra _tag_parts <<< "$_arg_tag"
-		for _tp in "${_tag_parts[@]}"; do
-			_tp="${_tp# }"; _tp="${_tp% }"
-			[ -z "$_tp" ] && continue
-			[ -n "$_tags_value" ] && _tags_value+=" "
-			_tags_value+="$(printf '%q' "$_tp")"
-		done
-	fi
-	printf 'sshm0_server_tags=(%s)\n' "$_tags_value" >> "$_tmpcfg"
-	chmod 600 "$_tmpcfg" || { rm -f "$_tmpcfg"; die "Failed to chmod server config" 1; }
-	local _config_path
-	_config_path="$(sshm0_server_config_path "$_host_name")" || { rm -f "$_tmpcfg"; die "Invalid server name: $_host_name" 1; }
-	mv "$_tmpcfg" "$_config_path" || { rm -f "$_tmpcfg"; die "Failed to save server config" 1; }
-	log "Imported $_host_name" 1
-	_imported=$((_imported + 1))
-	_host_name=""
-	_host_hostname=""
-	_host_user=""
-	_host_port=""
-	_host_identity=""
+	done
+	_reset_host
 }
 
 while IFS= read -r _line || [ -n "$_line" ]; do
@@ -358,13 +349,19 @@ while IFS= read -r _line || [ -n "$_line" ]; do
 	case "$_line" in
 		Host\ *)
 			_flush_host
-			_host_name="${_line#Host }"
-			_host_name="${_host_name#"${_host_name%%[![:space:]]*}"}"
-			_host_name="${_host_name%"${_host_name##*[![:space:]]}"}"
-			case "$_host_name" in
-				'*') _host_name="" ;;
-				'*.'*) _host_name="" ;;
-			esac
+			_host_aliases="${_line#Host }"
+			_host_names=()
+			read -ra _host_alias_parts <<< "$_host_aliases"
+			for _host_name in "${_host_alias_parts[@]}"; do
+				_host_name="${_host_name#"${_host_name%%[![:space:]]*}"}"
+				_host_name="${_host_name%"${_host_name##*[![:space:]]}"}"
+				case "$_host_name" in
+					""|*'*'*|*'?'*|*'['*)
+						continue
+						;;
+				esac
+				_host_names+=("$_host_name")
+			done
 			_host_hostname=""
 			_host_user=""
 			_host_port=""

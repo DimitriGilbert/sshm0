@@ -255,6 +255,9 @@ case "${_arg_action}" in
 		if [ -z "$_arg_key" ]; then
 			die "Key is required for 'get' action" 1
 		fi
+		if ! [[ "$_arg_key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+			die "Invalid config key: $_arg_key" 1
+		fi
 		_found=0
 		while IFS= read -r _line; do
 			case "$_line" in
@@ -273,7 +276,7 @@ case "${_arg_action}" in
 			esac
 		done < "$_config_file"
 		if [ "$_found" -eq 0 ]; then
-			_eval_val="$(eval "echo \"\${$_arg_key}\"" 2>/dev/null)"
+			_eval_val="${!_arg_key}"
 			if [ -n "$_eval_val" ]; then
 				echo "$_eval_val"
 			else
@@ -286,16 +289,35 @@ case "${_arg_action}" in
 		if [ -z "$_arg_key" ]; then
 			die "Key is required for 'set' action" 1
 		fi
+		if ! [[ "$_arg_key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+			die "Invalid config key: $_arg_key" 1
+		fi
 		if [ -z "$_arg_value" ]; then
 			die "Value is required for 'set' action" 1
 		fi
-		_entry="${_arg_key}=${_arg_value}"
-		if grep -q "^${_arg_key}=" "$_config_file"; then
-			sed -i "s|^${_arg_key}=.*|${_entry}|" "$_config_file"
-		else
-			echo "$_entry" >> "$_config_file"
+		_entry="${_arg_key}=$(printf '%q' "$_arg_value")"
+		_tmp_config="$(mktemp)" || die "Failed to create temporary file" 1
+		_found=0
+		while IFS= read -r _line; do
+			case "$_line" in
+				"$_arg_key="*)
+					printf '%s\n' "$_entry" >> "$_tmp_config" || { rm -f "$_tmp_config"; die "Failed to write config" 1; }
+					_found=1
+					;;
+				*)
+					printf '%s\n' "$_line" >> "$_tmp_config" || { rm -f "$_tmp_config"; die "Failed to write config" 1; }
+					;;
+			esac
+		done < "$_config_file"
+		if [ "$_found" -eq 0 ]; then
+			printf '%s\n' "$_entry" >> "$_tmp_config" || { rm -f "$_tmp_config"; die "Failed to write config" 1; }
 		fi
-		log "Set ${_arg_key}=${_arg_value}" 1
+		if mv "$_tmp_config" "$_config_file"; then
+			log "Set ${_arg_key}=${_arg_value}" 1
+		else
+			rm -f "$_tmp_config"
+			die "Failed to update config" 1
+		fi
 		;;
 	plugins)
 		if [ "${#sshm0_plugins[@]}" -eq 0 ]; then

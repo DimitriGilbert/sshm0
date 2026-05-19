@@ -273,6 +273,7 @@ _tmpfile="$(mktemp)" || die "Failed to create temporary file" 1
 		fi
 
 		echo "    # Timeout: ${sshm0_server_timeout:-10}s"
+		echo "    # Proxy: ${sshm0_server_proxy}"
 
 		if [ -n "$sshm0_server_proxy" ]; then
 			_proxy_jump="$(sshm0_get_proxy_args "$_name")" && echo "    ProxyJump $_proxy_jump"

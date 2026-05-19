@@ -135,7 +135,7 @@ parse_commandline()
 				fi
 				;;
 			--quiet)
-				if [ $# -lt 2 ];then
+				if [ $# -lt 2 ] || [ "${2#-}" != "$2" ] || ! printf '%s' "$2" | grep -Eq '^[0-9]+$';then
 					_verbose_level="$((_verbose_level - 1))";
 				else
 					_verbose_level="-$2";
