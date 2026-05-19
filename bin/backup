@@ -1,13 +1,15 @@
 #!/bin/bash
 
 # @parseArger-begin
-# @parseArger-help "show a server's configuration" --option "help" --short-option "h"
+# @parseArger-help "backup and restore configuration" --option "help" --short-option "h"
 # @parseArger-version "0.3.1" --option "version" --short-option "v"
 # @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
 source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger-declarations
-# @parseArger pos name "server name" --complete-custom "/usr/bin/ls /home/didi/.config/sshm0/servers"
+# @parseArger opt output "custom output path for backup file" --short o
+# @parseArger opt restore "path to backup file to restore from"
+# @parseArger flag yes "skip confirmation prompt for restore" --short y
 # @parseArger-declarations-end
 
 # @parseArger-utils
@@ -33,7 +35,7 @@ die()
 
 begins_with_short_option()
 {
-	local first_option all_short_options=''
+	local first_option all_short_options='oy'
 	first_option="${1:0:1}"
 	test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
 }
@@ -41,9 +43,11 @@ begins_with_short_option()
 # POSITIONALS ARGUMENTS
 _positionals=();
 _optional_positionals=();
-_arg_name="";
 # OPTIONALS ARGUMENTS
+_arg_output=
+_arg_restore=
 # FLAGS
+_arg_yes="off"
 # NESTED
 _verbose_level="0";
 
@@ -55,10 +59,12 @@ print_help()
 
 	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
 		_helpHasBeenPrinted=0;
-		echo -e "show a server's configuration:"
-	echo -e "	name: server name"
+		echo -e "backup and restore configuration:"
+	echo -e "	-o, --output <output>: custom output path for backup file"
+	echo -e "	--restore <restore>: path to backup file to restore from"
+	echo -e "	-y|--yes|--no-yes: skip confirmation prompt for restore"
 	echo -e "Usage :
-	$0 <name>";
+	$0 [--output <value>] [--restore <value>] [--[no-]yes]";
 	fi
 
 }
@@ -101,6 +107,33 @@ parse_commandline()
 	do
 		_key="$1"
 		case "$_key" in
+			-o|--output)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_output="$2"
+				shift
+				;;
+			--output=*)
+				_arg_output="${_key##--output=}"
+				;;
+			-o*)
+				_arg_output="${_key##-o}"
+				;;
+			
+			--restore)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_restore="$2"
+				shift
+				;;
+			--restore=*)
+				_arg_restore="${_key##--restore=}"
+				;;
+			
+			-y|--yes)
+				_arg_yes="on"
+				;;
+			--no-yes)
+				_arg_yes="off"
+				;;
 			-h|--help)
 				print_help;
 				exit 0;
@@ -147,13 +180,9 @@ parse_commandline()
 
 handle_passed_args_count()
 {
-	local _required_args_string="name"
-	if [ "${_positionals_count}" -gt 1 ] && [ "$_helpHasBeenPrinted" == "1" ];then
-		_PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect at most 1 (namely: $_required_args_string), but got ${_positionals_count} (the last one was: '${_last_positional}').\n\t${_positionals[*]}" 1
-	fi
-	if [ "${_positionals_count}" -lt 1 ] && [ "$_helpHasBeenPrinted" == "1" ];then
-		_PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require at least 1 (namely: $_required_args_string), but got only ${_positionals_count}.
-	${_positionals[*]}" 1;
+	local _required_args_string=""
+	if [ "${_positionals_count}" -gt 0 ] && [ "$_helpHasBeenPrinted" == "1" ];then
+		_PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect 0, but got ${_positionals_count} (the last one was: '${_last_positional}').\n\t${_positionals[*]}" 1
 	fi
 }
 
@@ -161,7 +190,7 @@ handle_passed_args_count()
 assign_positional_args()
 {
 	local _positional_name _shift_for=$1;
-	_positional_names="_arg_name ";
+	_positional_names=""
 	shift "$_shift_for"
 	for _positional_name in ${_positional_names};do
 		test $# -gt 0 || break;
@@ -177,7 +206,9 @@ print_debug()
 	# shellcheck disable=SC2145
 	echo "DEBUG: $0 $@";
 	
-	echo -e "	name: ${_arg_name}";
+	echo -e "	output: ${_arg_output}";
+	echo -e "	restore: ${_arg_restore}";
+	echo -e "	yes: ${_arg_yes}";
 
 }
 
@@ -204,50 +235,32 @@ trap on_interrupt INT;
 # print_debug "$@"
 # @parseArger-end
 
-if sshm0_server_exists "$_arg_name"; then
-	sshm0_load_server "$_arg_name"
-
-	# Display password safely — never show plaintext
-	_pw_display="(none)"
-	if [ -n "$sshm0_server_password" ]; then
-		_pw_display="(set)"
+if [ -n "$_arg_restore" ]; then
+	if [ ! -f "$_arg_restore" ]; then
+		die "Backup file not found: $_arg_restore" 1
 	fi
-
-	# Display optional fields — show (none) if empty
-	_key_display="(none)"
-	if [ -n "$sshm0_server_key" ]; then
-		_key_display="$sshm0_server_key"
+	if [[ "$_arg_restore" != *.tar.gz ]]; then
+		die "Backup file must be a .tar.gz file: $_arg_restore" 1
 	fi
-
-	_cd_display="(none)"
-	if [ -n "$sshm0_server_cd" ]; then
-		_cd_display="$sshm0_server_cd"
+	if [ "$_arg_yes" != "on" ]; then
+		read -rp "This will overwrite current config. Continue? [y/N] " _confirm
+		if [ "$_confirm" != "y" ] && [ "$_confirm" != "Y" ]; then
+			echo "Aborted."
+			exit 0
+		fi
 	fi
-
-	_timeout_display="${sshm0_server_timeout:-10}"
-
-	_exec_display="(none)"
-	if [ ${#sshm0_server_exec_before[@]} -gt 0 ]; then
-		_exec_display="${sshm0_server_exec_before[*]}"
-	fi
-
-	echo "Server: $_arg_name"
-	echo "IP:     $sshm0_server_ip"
-	echo "User:   $sshm0_server_user"
-	echo "Port:   $sshm0_server_port"
-	echo "Auth:   $sshm0_server_auth"
-	echo "Password: $_pw_display"
-	echo "Key:    $_key_display"
-	echo "CD:     $_cd_display"
-	echo "Timeout: ${_timeout_display}s"
-	echo "Exec:   $_exec_display"
-
-	_proxy_display="(none)"
-	if [ -n "$sshm0_server_proxy" ]; then
-		_proxy_display="$sshm0_server_proxy"
-	fi
-	echo "Proxy:  $_proxy_display"
+	tar -xzf "$_arg_restore" -C "$(dirname "$SSHM0_CONFIG_DIR")"
+	log "Restored from: $_arg_restore" 1
 else
-	echo "Server $_arg_name not found"
-	exit 1
+	_backup_dir="$SSHM0_CONFIG_DIR/backups"
+	if [ ! -d "$_backup_dir" ]; then
+		mkdir -p "$_backup_dir"
+	fi
+	if [ -n "$_arg_output" ]; then
+		_output="$_arg_output"
+	else
+		_output="$_backup_dir/sshm0-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
+	fi
+	tar -czf "$_output" -C "$(dirname "$SSHM0_CONFIG_DIR")" "$(basename "$SSHM0_CONFIG_DIR")"
+	log "Backup created: $_output" 1
 fi
