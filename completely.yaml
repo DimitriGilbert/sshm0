@@ -49,6 +49,11 @@ sshm0 add:
 - -t
 - --group
 - -g
+- --proxy
+- -J
+- --timeout
+- --group
+- -g
 
 sshm0 add*--key:
 - $(dir="$HOME/.ssh"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
@@ -74,6 +79,11 @@ sshm0 edit:
 - -c
 - --tag
 - -t
+- --group
+- -g
+- --proxy
+- -J
+- --timeout
 - --group
 - -g
 

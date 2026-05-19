@@ -205,6 +205,7 @@ trap on_interrupt INT;
 # @parseArger-end
 
 if sshm0_server_exists "$_arg_name"; then
+	sshm0_server_group=""
 	sshm0_load_server "$_arg_name"
 
 	# Display password safely — never show plaintext
@@ -231,6 +232,11 @@ if sshm0_server_exists "$_arg_name"; then
 		_exec_display="${sshm0_server_exec_before[*]}"
 	fi
 
+	_group_display="(none)"
+	if [ -n "$sshm0_server_group" ]; then
+		_group_display="$sshm0_server_group"
+	fi
+
 	echo "Server: $_arg_name"
 	echo "IP:     $sshm0_server_ip"
 	echo "User:   $sshm0_server_user"
@@ -241,6 +247,7 @@ if sshm0_server_exists "$_arg_name"; then
 	echo "CD:     $_cd_display"
 	echo "Timeout: ${_timeout_display}s"
 	echo "Exec:   $_exec_display"
+	echo "Group:  $_group_display"
 
 	_proxy_display="(none)"
 	if [ -n "$sshm0_server_proxy" ]; then
