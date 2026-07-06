@@ -228,7 +228,10 @@ if [ ${#_tag_count[@]} -eq 0 ]; then
 	exit 0
 fi
 
-for _tag in $(printf '%s\n' "${!_tag_count[@]}" | sort); do
+# Iterate sorted tag names with while-read so tags containing spaces
+# (e.g. "web server") are not split on IFS by an unquoted $(... | sort).
+while IFS= read -r _tag; do
+	[ -n "$_tag" ] || continue
 	_count="${_tag_count[$_tag]}"
 	echo "$_tag ($_count)"
 	if [ "$_arg_long" = "on" ]; then
@@ -236,4 +239,4 @@ for _tag in $(printf '%s\n' "${!_tag_count[@]}" | sort); do
 			echo "  $_srv"
 		done
 	fi
-done
+done < <(printf '%s\n' "${!_tag_count[@]}" | sort)

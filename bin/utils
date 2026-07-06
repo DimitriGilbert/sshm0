@@ -79,9 +79,11 @@ sshm0_load_server() {
   if [ ! -f "$_path" ]; then
     return 1
   fi
-  set -a
+  # NOTE: do not `set -a` here. These are read as shell variables by callers,
+  # not environment variables. `set -a` would export sshm0_server_password
+  # (the decrypted plaintext) and the key path into every ssh/scp/rsync child,
+  # leaking secrets via /proc/<pid>/environ.
   source "$_path"
-  set +a
   return 0
 }
 

@@ -231,15 +231,21 @@ source "$_config_file"
 
 case "${_arg_action}" in
 	list)
+		# The config is already sourced; print each scalar key with its RESOLVED
+		# value so %q-escaped values (written by `set`) round-trip correctly
+		# (e.g. stored "a\ b" is shown as "a b"). Skip array declarations.
 		while IFS= read -r _line; do
 			case "$_line" in
-				declare\ -A*|"#"*|"")
+				declare\ -A*|declare\ -a*|"#"*|"")
 					continue
 					;;
 				*=*)
 					_var_name="${_line%%=*}"
-					_var_value="${_line#*=}"
-					echo "${_var_name}=${_var_value}"
+					# only print scalar keys (arrays need different expansion)
+					if [[ "$_var_name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+						_var_value="${!_var_name}"
+						echo "${_var_name}=${_var_value}"
+					fi
 					;;
 			esac
 		done < "$_config_file"
@@ -258,31 +264,16 @@ case "${_arg_action}" in
 		if ! [[ "$_arg_key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
 			die "Invalid config key: $_arg_key" 1
 		fi
-		_found=0
-		while IFS= read -r _line; do
-			case "$_line" in
-				declare\ -A*|"#"*|"")
-					continue
-					;;
-				*=*)
-					_var_name="${_line%%=*}"
-					if [ "$_var_name" = "$_arg_key" ]; then
-						_var_value="${_line#*=}"
-						echo "$_var_value"
-						_found=1
-						break
-					fi
-					;;
-			esac
-		done < "$_config_file"
-		if [ "$_found" -eq 0 ]; then
-			_eval_val="${!_arg_key}"
-			if [ -n "$_eval_val" ]; then
-				echo "$_eval_val"
-			else
-				echo "Key '$_arg_key' not found" >&2
-				exit 1
-			fi
+		# The config file is already sourced above, so the key is in scope.
+		# Use indirect expansion to get the RESOLVED value — this correctly
+		# un-escapes values that `set` stored with printf %q (e.g. "a\ b" -> "a b"),
+		# instead of returning the raw escaped substring from the file.
+		_eval_val="${!_arg_key}"
+		if [ -n "$_eval_val" ]; then
+			echo "$_eval_val"
+		else
+			echo "Key '$_arg_key' not found" >&2
+			exit 1
 		fi
 		;;
 	set)
