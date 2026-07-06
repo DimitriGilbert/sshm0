@@ -263,15 +263,23 @@ print_version()
 }
 
 
-on_interrupt() {
-	die Process aborted! 130;
+# clean up askpass temp file and scrub secrets on exit/interrupt
+_on_interrupt() {
+  if [ -n "${_tmpps:-}" ] && [ -f "$_tmpps" ]; then
+    rm -f "$_tmpps"
+  fi
+  for _f in "${_output_files[@]:-}"; do
+    [ -n "$_f" ] && [ -f "$_f" ] && rm -f "$_f"
+  done
+  unset SSH_PASSWORD SSH_ASKPASS DISPLAY
+  exit 130
 }
 
 
 parse_commandline "$@";
 handle_passed_args_count;
 assign_positional_args 1 "${_positionals[@]}";
-trap on_interrupt INT;
+trap _on_interrupt INT TERM HUP;
 
 
 
@@ -348,42 +356,81 @@ _failed=0
 _pids=()
 _output_files=()
 
-for _srv in "${_target_servers[@]}"; do
-	sshm0_load_server "$_srv" || { _failed=$((_failed + 1)); continue; }
+# run a single server; mirrors the connect/cp/rsync auth pattern so that
+# password-auth servers work via SSH_ASKPASS, not just key-auth servers.
+# $1 = server name, $2 = output file ("-" for stdout)
+_run_on_server() {
+	local _srv="$1" _out="$2"
+	sshm0_load_server "$_srv" || return 1
 
-	_ssh_args=("-o" "ConnectTimeout=${_arg_timeout}" "-p" "${sshm0_server_port}" "${sshm0_server_user}@${sshm0_server_ip}")
+	local _decrypted_password
+	_decrypted_password="$(sshm0_decrypt_password "$sshm0_server_password")"
+
+	local -a _ssh_args=("-o" "ConnectTimeout=${sshm0_server_timeout:-${_arg_timeout}}" "-p" "${sshm0_server_port}" "${sshm0_server_user}@${sshm0_server_ip}")
 
 	if [ "$sshm0_server_auth" = "key" ]; then
 		_ssh_args+=("-i" "$sshm0_server_key")
 	fi
 
+	local _proxy_jump
 	_proxy_jump="$(sshm0_get_proxy_args "$_srv")"
 	if [ -n "$_proxy_jump" ]; then
 		_ssh_args+=("-o" "ProxyJump=$_proxy_jump")
 	fi
 
+	# https://stackoverflow.com/a/38745725
+	# SSH_ASKPASS lets ssh read the password without a controlling tty.
+	# `setsid` below detaches ssh from our tty so the askpass helper is used.
+	local _tmpps=""
+	if [ "$sshm0_server_auth" = "password" ] && [ -n "$_decrypted_password" ]; then
+		if [ "$sshm0_server_password_bad" != "I KNOW" ]; then
+			log "[$_srv] Using auth password BAAAADDDDD !!" -1
+		fi
+		_tmpps="$(mktemp)"
+		printf '#!/bin/sh\nprintf '\''%%s'\'' "$SSH_PASSWORD"' > "$_tmpps"
+		chmod 700 "$_tmpps"
+		export SSH_PASSWORD="$_decrypted_password"
+		export SSH_ASKPASS="$_tmpps"
+		export DISPLAY="YOURDOINGITWRONG"
+	fi
+
+	local _rc=0
+	if [ "$_out" = "-" ]; then
+		setsid ssh "${_ssh_args[@]}" "$_exec_cmd" 2>&1 | sed "s/^/[$_srv] /"
+		_rc=${PIPESTATUS[0]}
+	else
+		setsid ssh "${_ssh_args[@]}" "$_exec_cmd" 2>&1 | sed "s/^/[$_srv] /" > "$_out"
+		_rc=${PIPESTATUS[0]}
+	fi
+
+	if [ -n "$_tmpps" ] && [ -f "$_tmpps" ]; then
+		rm -f "$_tmpps"
+	fi
+	unset SSH_PASSWORD SSH_ASKPASS DISPLAY
+
+	return "$_rc"
+}
+
+for _srv in "${_target_servers[@]}"; do
 	if [ "$_arg_parallel" = "on" ]; then
 		_tmpout="$(mktemp)"
 		_output_files+=("$_tmpout")
 		(
-			ssh "${_ssh_args[@]}" "$_exec_cmd" 2>&1 | sed "s/^/[$_srv] /" > "$_tmpout"
-			exit ${PIPESTATUS[0]}
+			_run_on_server "$_srv" "$_tmpout"
+			exit $?
 		) &
 		_pids+=($!)
 	else
 		log "[$_srv] Running: $_exec_cmd" 2
-		ssh "${_ssh_args[@]}" "$_exec_cmd" 2>&1 | sed "s/^/[$_srv] /"
-		if [ ${PIPESTATUS[0]} -ne 0 ]; then
-			_failed=$((_failed + 1))
-		fi
+		_run_on_server "$_srv" "-" || _failed=$((_failed + 1))
 	fi
 done
 
 if [ "$_arg_parallel" = "on" ]; then
 	for _i in "${!_pids[@]}"; do
 		wait "${_pids[$_i]}" || _failed=$((_failed + 1))
-		cat "${_output_files[$_i]}"
-		rm -f "${_output_files[$_i]}"
+		[ -n "${_output_files[$_i]:-}" ] && cat "${_output_files[$_i]}"
+		[ -n "${_output_files[$_i]:-}" ] && rm -f "${_output_files[$_i]}"
 	done
 fi
 
