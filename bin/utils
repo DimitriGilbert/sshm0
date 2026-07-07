@@ -79,10 +79,72 @@ sshm0_load_server() {
   if [ ! -f "$_path" ]; then
     return 1
   fi
-  set -a
+  # NOTE: do not `set -a` here. These are read as shell variables by callers,
+  # not environment variables. `set -a` would export sshm0_server_password
+  # (the decrypted plaintext) and the key path into every ssh/scp/rsync child,
+  # leaking secrets via /proc/<pid>/environ.
   source "$_path"
-  set +a
   return 0
+}
+
+sshm0_validate_server() {
+  local _ip="$1" _port="$2" _user="$3" _auth="$4" _key="$5" _timeout="$6"
+
+  if [ -z "$_ip" ]; then
+    echo "Error: IP/hostname must not be empty" >&2
+    return 1
+  fi
+  if ! [[ "$_ip" =~ ^[a-zA-Z0-9]([a-zA-Z0-9._:-]*[a-zA-Z0-9])?$ ]]; then
+    echo "Error: invalid IP/hostname '$_ip'" >&2
+    return 1
+  fi
+
+  if [ -z "$_port" ]; then
+    echo "Error: port must not be empty" >&2
+    return 1
+  fi
+  if ! [[ "$_port" =~ ^[0-9]+$ ]] || [ "$_port" -lt 1 ] || [ "$_port" -gt 65535 ]; then
+    echo "Error: port must be numeric and between 1-65535" >&2
+    return 1
+  fi
+
+  if [ -z "$_user" ]; then
+    echo "Error: user must not be empty" >&2
+    return 1
+  fi
+
+  if [ "$_auth" = "key" ] && [ -z "$_key" ]; then
+    echo "Error: key path must be provided when auth is 'key'" >&2
+    return 1
+  fi
+
+  if [ -z "$_timeout" ]; then
+    echo "Error: timeout must not be empty" >&2
+    return 1
+  fi
+  if ! [[ "$_timeout" =~ ^[0-9]+$ ]] || [ "$_timeout" -lt 1 ]; then
+    echo "Error: timeout must be a positive integer" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+sshm0_get_proxy_args() {
+  (
+    local _proxy
+    sshm0_load_server "$1" || exit 1
+    [ -n "$sshm0_server_proxy" ] || exit 1
+    _proxy="$sshm0_server_proxy"
+    sshm0_server_user=""
+    sshm0_server_ip=""
+    sshm0_server_port=""
+    sshm0_load_server "$_proxy" || exit 1
+    [ -n "$sshm0_server_user" ] || exit 1
+    [ -n "$sshm0_server_ip" ] || exit 1
+    [ -n "$sshm0_server_port" ] || exit 1
+    echo "${sshm0_server_user}@${sshm0_server_ip}:${sshm0_server_port}"
+  )
 }
 
 sshm0_record_connection() {
@@ -90,4 +152,65 @@ sshm0_record_connection() {
   local _timestamp
   _timestamp="$(date +%s)"
   echo "${_timestamp}:$1" >> "$_history_file"
+}
+
+sshm0_get_encryption_key() {
+  local _config="$SSHM0_CONFIG_DIR/config"
+  # shellcheck source=../config.dist
+  source "$_config"
+  if [ -n "${sshm0_config_encryption_key:-}" ]; then
+    echo "$sshm0_config_encryption_key"
+    return 0
+  fi
+  local _key
+  _key="$(echo "$(hostname)-$(whoami)-sshm0" | sha256sum | cut -d' ' -f1)"
+  printf 'sshm0_config_encryption_key=%s\n' "$_key" >> "$_config"
+  echo "$_key"
+}
+
+sshm0_encrypt_password() {
+  local _plaintext="$1"
+  if [ -z "$_plaintext" ]; then
+    echo ""
+    return 0
+  fi
+  if ! command -v openssl &>/dev/null; then
+    echo "Warning: openssl not available, storing password as plaintext" >&2
+    echo "$_plaintext"
+    return 0
+  fi
+  local _key
+  _key="$(sshm0_get_encryption_key)" || { echo "$_plaintext"; return 0; }
+  local _encrypted
+  _encrypted="$(echo "$_plaintext" | openssl enc -aes-256-cbc -pbkdf2 -pass "pass:$_key" -base64 -A 2>/dev/null)" || {
+    echo "$_plaintext"
+    return 0
+  }
+  echo "enc:$_encrypted"
+}
+
+sshm0_decrypt_password() {
+  local _encrypted="$1"
+  if [ -z "$_encrypted" ]; then
+    echo ""
+    return 0
+  fi
+  if [[ "$_encrypted" != enc:* ]]; then
+    echo "$_encrypted"
+    return 0
+  fi
+  if ! command -v openssl &>/dev/null; then
+    echo "Warning: openssl not available, cannot decrypt password" >&2
+    echo "$_encrypted"
+    return 0
+  fi
+  local _ciphertext="${_encrypted#enc:}"
+  local _key
+  _key="$(sshm0_get_encryption_key)" || { echo "$_encrypted"; return 0; }
+  local _plaintext
+  _plaintext="$(echo "$_ciphertext" | openssl enc -aes-256-cbc -pbkdf2 -pass "pass:$_key" -d -base64 -A 2>/dev/null)" || {
+    echo "$_encrypted"
+    return 0
+  }
+  echo "$_plaintext"
 }

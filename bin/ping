@@ -207,7 +207,7 @@ trap on_interrupt INT;
 if sshm0_server_exists "$_arg_name"; then
 	sshm0_load_server "$_arg_name"
 
-	if ssh -o BatchMode=yes -o ConnectTimeout=5 -p "$sshm0_server_port" "${sshm0_server_user}@${sshm0_server_ip}" "echo ok" 2>/dev/null; then
+	if ssh -o BatchMode=yes -o ConnectTimeout="${sshm0_server_timeout:-10}" -p "$sshm0_server_port" "${sshm0_server_user}@${sshm0_server_ip}" "echo ok" 2>/dev/null; then
 		echo "Server $_arg_name ($sshm0_server_ip): reachable"
 		exit 0
 	else

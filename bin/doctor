@@ -218,16 +218,23 @@ fi
 
 # 5. Required tools
 _missing_tools=()
-for _tool in ssh scp setsid mktemp; do
+for _tool in ssh scp rsync setsid mktemp; do
 	if ! command -v "$_tool" >/dev/null 2>&1; then
 		_missing_tools+=("$_tool")
 	fi
 done
 
 if [ ${#_missing_tools[@]} -eq 0 ]; then
-	check_ok "Required tools:" "ssh, scp, setsid, mktemp"
+	check_ok "Required tools:" "ssh, scp, rsync, setsid, mktemp"
 else
 	check_fail "Required tools:" "missing: ${_missing_tools[*]}"
+fi
+
+# 6. Optional tools
+if command -v openssl >/dev/null 2>&1; then
+	check_ok "openssl:" "$(command -v openssl) (optional, for password encryption)"
+else
+	printf "  %-26s [INFO] %s\n" "openssl:" "not found — optional, needed for password encryption"
 fi
 
 # 6. Server count

@@ -1,0 +1,231 @@
+#!/bin/bash
+
+# @parseArger-begin
+# @parseArger-help "update sshm0 to the latest version" --option "help" --short-option "h"
+# @parseArger-version "0.3.1" --option "version" --short-option "v"
+# @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
+# @parseArger-source $SSHM0_ROOT_DIR/bin/utils
+source "$SSHM0_ROOT_DIR/bin/utils";
+# @parseArger-declarations
+# @parseArger flag check "only check for updates, do not update" --short c
+# @parseArger flag force "force reinstall to latest" --short f
+# @parseArger-declarations-end
+
+# @parseArger-utils
+_helpHasBeenPrinted=1;
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)";
+# @parseArger-utils-end
+
+# @parseArger-parsing
+
+__cli_arg_count=$#;
+
+die()
+{
+	local _ret=1
+    if [[ -n "$2" ]] && [[ "$2" =~ ^[0-9]+$ ]]; then
+   	_ret="$2"
+    fi
+	test "${_PRINT_HELP:-no}" = yes && print_help >&2
+	log "$1" -3 >&2
+	exit "${_ret}"
+}
+
+
+begins_with_short_option()
+{
+	local first_option all_short_options='cf'
+	first_option="${1:0:1}"
+	test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
+}
+
+# POSITIONALS ARGUMENTS
+_positionals=();
+_optional_positionals=();
+# OPTIONALS ARGUMENTS
+# FLAGS
+_arg_check="off"
+_arg_force="off"
+# NESTED
+_verbose_level="0";
+
+
+
+print_help()
+{
+	_triggerSCHelp=1;
+
+	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
+		_helpHasBeenPrinted=0;
+		echo -e "update sshm0 to the latest version:"
+	echo -e "	-c|--check|--no-check: only check for updates, do not update"
+	echo -e "	-f|--force|--no-force: force reinstall to latest"
+	echo -e "Usage :
+	$0 [--[no-]check] [--[no-]force]";
+	fi
+
+}
+
+log() {
+	local _arg_msg="${1}";
+	local _arg_level="${2:-0}";
+	if [ "${_arg_level}" -le "${_verbose_level}" ]; then
+		case "$_arg_level" in
+			-3)
+				_arg_COLOR="\033[0;31m";
+				;;
+			-2)
+				_arg_COLOR="\033[0;33m";
+				;;
+			-1)
+				_arg_COLOR="\033[1;33m";
+				;;
+			1)
+				_arg_COLOR="\033[0;32m";
+				;;
+			2)
+				_arg_COLOR="\033[1;36m";
+				;;
+			3)
+				_arg_COLOR="\033[0;36m";
+				;;
+			*)
+				_arg_COLOR="\033[0m";
+				;;
+		esac
+		echo -e "${_arg_COLOR}${_arg_msg}\033[0m";
+	fi
+}
+
+parse_commandline()
+{
+	_positionals_count=0
+	while test $# -gt 0
+	do
+		_key="$1"
+		case "$_key" in
+			-c|--check)
+				_arg_check="on"
+				;;
+			--no-check)
+				_arg_check="off"
+				;;
+			-f|--force)
+				_arg_force="on"
+				;;
+			--no-force)
+				_arg_force="off"
+				;;
+			-h|--help)
+				print_help;
+				exit 0;
+				;;
+			-h*)
+				print_help;
+				exit 0;
+				;;
+			-v|--version)
+				print_version;
+				exit 0;
+				;;
+			-v*)
+				print_version;
+				exit 0;
+				;;
+			--verbose)
+				if [ $# -lt 2 ];then
+					_verbose_level="$((_verbose_level + 1))";
+				else
+					_verbose_level="$2";
+					shift;
+				fi
+				;;
+			--quiet)
+				if [ $# -lt 2 ];then
+					_verbose_level="$((_verbose_level - 1))";
+				else
+					_verbose_level="-$2";
+					shift;
+				fi
+				;;
+			
+			*)
+			_last_positional="$1"
+			_positionals+=("$_last_positional")
+			_positionals_count=$((_positionals_count + 1))
+			;;
+		esac
+		shift
+	done
+}
+
+
+handle_passed_args_count()
+{
+	if [ "${_positionals_count}" -gt 0 ];then
+		_PRINT_HELP=yes die "FATAL ERROR: This command takes no positional arguments, but got ${_positionals_count} (the last one was: '${_last_positional}').\n\t${_positionals[*]}" 1
+	fi
+}
+
+
+print_version()
+{
+	echo "0.3.1";
+}
+
+
+on_interrupt() {
+	die Process aborted! 130;
+}
+
+
+parse_commandline "$@";
+handle_passed_args_count;
+trap on_interrupt INT;
+
+
+
+# @parseArger-parsing-end
+# print_debug "$@"
+# @parseArger-end
+
+if [ ! -d "$SSHM0_ROOT_DIR/.git" ]; then
+	die "Not a git installation — cannot self-update. Reinstall with: utils/get_sshm0" 1
+fi
+
+_current_version="$("$SSHM0_ROOT_DIR/sshm0" --version 2>/dev/null)"
+log "Current version: $_current_version" 1
+
+if [ "$_arg_force" = "on" ]; then
+	log "Force update requested" 1
+	git -C "$SSHM0_ROOT_DIR" fetch origin main 2>/dev/null || die "Failed to fetch from remote" 1
+	git -C "$SSHM0_ROOT_DIR" reset --hard origin/main 2>/dev/null || die "Failed to reset to origin/main" 1
+	chmod +x "$SSHM0_ROOT_DIR/sshm0" "$SSHM0_ROOT_DIR"/bin/* "$SSHM0_ROOT_DIR"/utils/*
+	_new_version="$("$SSHM0_ROOT_DIR/sshm0" --version 2>/dev/null)"
+	log "Updated to $_new_version" 1
+	exit 0
+fi
+
+git -C "$SSHM0_ROOT_DIR" fetch origin main 2>/dev/null || die "Failed to fetch from remote" 1
+
+# Count new commits available. Use rev-list --count (returns a clean integer,
+# never an empty multiline value) instead of `grep -c . ... || echo 0`, which
+# produced "0\n0" when there were no new commits and broke the integer compare.
+_new_count=$(git -C "$SSHM0_ROOT_DIR" rev-list --count HEAD..origin/main 2>/dev/null)
+_new_count=${_new_count:-0}
+
+if [ "$_new_count" -eq 0 ]; then
+	log "Up to date (v$_current_version)" 1
+	exit 0
+fi
+
+if [ "$_arg_check" = "on" ]; then
+	log "Update available: $_new_count new commit$([ "$_new_count" -ne 1 ] && echo 's')" 1
+	exit 0
+fi
+
+log "Updating... ($_new_count new commit$([ "$_new_count" -ne 1 ] && echo 's'))" 1
+git -C "$SSHM0_ROOT_DIR" pull origin main 2>/dev/null || die "Failed to pull updates" 1
+chmod +x "$SSHM0_ROOT_DIR/sshm0" "$SSHM0_ROOT_DIR"/bin/* "$SSHM0_ROOT_DIR"/utils/*
+_new_version="$("$SSHM0_ROOT_DIR/sshm0" --version 2>/dev/null)"
+log "Updated to $_new_version" 1

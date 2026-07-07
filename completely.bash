@@ -37,7 +37,7 @@ _sshm0_completions() {
       ;;
 
     'list'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--tag -t --filter -f --long -l --recent -r")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--tag -t --filter -f --long -l --recent -r --group -g --tree --no-tree")" -- "$cur" )
       ;;
 
     'connect'*)
@@ -45,19 +45,23 @@ _sshm0_completions() {
       ;;
 
     'remove'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true) --yes --no-yes -y")" -- "$cur" )
       ;;
 
     'edit'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true) --ip --user --password -p --key -i --auth --port --connect --no-connect -c --tag -t")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true) --ip --user --password -p --key -i --auth --port --connect --no-connect -c --tag -t --group -g --proxy -J --timeout")" -- "$cur" )
       ;;
 
     'add'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--password --pass --pwd -p --key -i --auth -a --port -P --force --no-force -f --connect --no-connect -c --tag -t")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--password --pass --pwd -p --key -i --auth -a --port -P --force --no-force -f --connect --no-connect -c --tag -t --group -g --proxy -J --timeout")" -- "$cur" )
       ;;
 
     'cp'*)
       while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -A file -A file -- "$cur" )
+      ;;
+
+    'plugin'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--help")" -- "$cur" )
       ;;
 
     'rename'*)
@@ -72,16 +76,48 @@ _sshm0_completions() {
       while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--output -o --merge")" -- "$cur" )
       ;;
 
+    'import'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--file -f --force --no-force --dry-run --no-dry-run --tag -t")" -- "$cur" )
+      ;;
+
     'ping'*)
       while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)")" -- "$cur" )
+      ;;
+
+    'rsync'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -A file -A file -- "$cur" )
+      ;;
+
+    'history'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--count -n --server -s")" -- "$cur" )
+      ;;
+
+    'config'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "list get set plugins")" -- "$cur" )
       ;;
 
     'doctor'*)
       while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "")" -- "$cur" )
       ;;
 
+    'backup'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--output -o --restore --yes --no-yes -y")" -- "$cur" )
+      ;;
+
+    'update'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--check -c --force -f")" -- "$cur" )
+      ;;
+
+    'exec'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "$(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true) --tag -t --group -g --parallel --no-parallel -p --yes --no-yes -y --timeout")" -- "$cur" )
+      ;;
+
+    'tags'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "--long -l")" -- "$cur" )
+      ;;
+
     *)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "list add connect cp edit export plugin remove rename show ping doctor --config-dir")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_sshm0_completions_filter "list add config connect cp edit export import plugin remove rename show ping rsync doctor tags history backup update exec --config-dir")" -- "$cur" )
       ;;
 
   esac

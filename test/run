@@ -1,0 +1,22 @@
+#!/bin/bash
+# Run the sshm0 bats test suite.
+# Uses the vendored bats-core (no install step required).
+set -euo pipefail
+
+_HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+_BATS="$_HERE/lib/bats-core/bin/bats"
+_CASES="$_HERE/cases"
+
+if [ ! -x "$_BATS" ]; then
+  echo "ERROR: bats not found at $_BATS" >&2
+  echo "       test/lib/bats-core appears to be missing." >&2
+  exit 1
+fi
+
+if [ ! -d "$_CASES" ]; then
+  echo "ERROR: no test cases directory at $_CASES" >&2
+  exit 1
+fi
+
+# Allow passing extra args through to bats (e.g. ./test/run -v a.test.case).
+exec "$_BATS" "$@" "$_CASES"

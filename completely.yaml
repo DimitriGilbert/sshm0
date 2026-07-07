@@ -1,6 +1,7 @@
 sshm0:
 - list
 - add
+- config
 - connect
 - cp
 - edit
@@ -9,8 +10,15 @@ sshm0:
 - rename
 - show
 - export
+- import
 - ping
 - doctor
+- backup
+- update
+- exec
+- rsync
+- tags
+- history
 - --config-dir
 sshm0 list:
 - --tag
@@ -21,6 +29,10 @@ sshm0 list:
 - -l
 - --recent
 - -r
+- --group
+- -g
+- --tree
+- --no-tree
 sshm0 add:
 - --password
 - --pass
@@ -40,6 +52,13 @@ sshm0 add:
 - -c
 - --tag
 - -t
+- --group
+- -g
+- --proxy
+- -J
+- --timeout
+- --group
+- -g
 
 sshm0 add*--key:
 - $(dir="$HOME/.ssh"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
@@ -65,6 +84,13 @@ sshm0 edit:
 - -c
 - --tag
 - -t
+- --group
+- -g
+- --proxy
+- -J
+- --timeout
+- --group
+- -g
 
 sshm0 edit*--key:
 - $(dir="$HOME/.ssh"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
@@ -72,16 +98,71 @@ sshm0 export:
 - --output
 - -o
 - --merge
+sshm0 import:
+- --file
+- -f
+- --force
+- --no-force
+- --dry-run
+- --no-dry-run
+- --tag
+- -t
 sshm0 plugin:
+- --help
 sshm0 remove:
 - $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
+- --yes
+- --no-yes
+- -y
 sshm0 rename:
 - $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
 sshm0 show:
 - $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
 sshm0 ping:
 - $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
+sshm0 rsync:
+- <file>
+- <file>
+sshm0 config:
+- list
+- get
+- set
+- plugins
 sshm0 doctor:
+sshm0 tags:
+- --long
+- -l
+sshm0 history:
+- --count
+- -n
+- --server
+- -s
+sshm0 backup:
+- --output
+- -o
+- --restore
+- --yes
+- --no-yes
+- -y
+sshm0 update:
+- --check
+- -c
+- --force
+- -f
+
+sshm0 exec:
+- $(dir="${SSHM0_CONFIG_DIR:-$HOME/.config/sshm0}/servers"; [ -d "$dir" ] && /usr/bin/ls "$dir" || true)
+- --tag
+- -t
+- --group
+- -g
+- --parallel
+- --no-parallel
+- -p
+- --yes
+- --no-yes
+- -y
+- --timeout
 
 
 

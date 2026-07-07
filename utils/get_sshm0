@@ -1,7 +1,7 @@
 #!/bin/bash
 # @parseArger-begin
 # @parseArger-help "get sshm0" --option "help" --short-option "h"
-# @parseArger-verbose --option "verbose" --level "0"
+# @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
 # @parseArger-declarations
 # @parseArger opt branch "version to install" --short b --alias tag --alias install-version
 # @parseArger opt install-directory "where to install" --complete "directory"
@@ -189,6 +189,14 @@ parse_commandline()
 					_verbose_level="$((_verbose_level + 1))";
 				else
 					_verbose_level="$2";
+					shift;
+				fi
+				;;
+			--quiet)
+				if [ $# -lt 2 ];then
+					_verbose_level="$((_verbose_level - 1))";
+				else
+					_verbose_level="-$2";
 					shift;
 				fi
 				;;

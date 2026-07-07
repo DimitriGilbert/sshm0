@@ -1,2 +1,7 @@
 alias sshm0="${SSHM0_ROOT_DIR}/sshm0";
-source "${SSHM0_ROOT_DIR}/completely.bash"
+
+if [ -n "$ZSH_VERSION" ]; then
+  source "${SSHM0_ROOT_DIR}/completely.zsh"
+else
+  source "${SSHM0_ROOT_DIR}/completely.bash"
+fi

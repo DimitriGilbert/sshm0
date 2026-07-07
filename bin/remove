@@ -8,6 +8,7 @@
 source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger-declarations
 # @parseArger pos name "server name" --complete-custom "/usr/bin/ls /home/didi/.config/sshm0/servers"
+# @parseArger flag yes "skip confirmation prompt" --short y
 # @parseArger-declarations-end
 
 # @parseArger-utils
@@ -33,7 +34,7 @@ die()
 
 begins_with_short_option()
 {
-	local first_option all_short_options=''
+	local first_option all_short_options='y'
 	first_option="${1:0:1}"
 	test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
 }
@@ -44,6 +45,7 @@ _optional_positionals=();
 _arg_name="";
 # OPTIONALS ARGUMENTS
 # FLAGS
+_arg_yes="off"
 # NESTED
 _verbose_level="0";
 
@@ -57,8 +59,9 @@ print_help()
 		_helpHasBeenPrinted=0;
 		echo -e "remove a server:"
 	echo -e "	name: server name"
+	echo -e "	-y|--yes|--no-yes: skip confirmation prompt"
 	echo -e "Usage :
-	$0 <name>";
+	$0 <name> [--[no-]yes]";
 	fi
 
 }
@@ -101,6 +104,12 @@ parse_commandline()
 	do
 		_key="$1"
 		case "$_key" in
+			-y|--yes)
+				_arg_yes="on"
+				;;
+			--no-yes)
+				_arg_yes="off"
+				;;
 			-h|--help)
 				print_help;
 				exit 0;
@@ -178,6 +187,7 @@ print_debug()
 	echo "DEBUG: $0 $@";
 	
 	echo -e "	name: ${_arg_name}";
+	echo -e "	yes: ${_arg_yes}";
 
 }
 
@@ -205,6 +215,13 @@ trap on_interrupt INT;
 # @parseArger-end
 
 if sshm0_server_exists "$_arg_name"; then
+	if [ "$_arg_yes" != "on" ]; then
+		read -rp "Remove server '$_arg_name'? [y/N] " _confirm
+		if [ "$_confirm" != "y" ] && [ "$_confirm" != "Y" ]; then
+			echo "Aborted."
+			exit 0
+		fi
+	fi
 	rm "$(sshm0_server_config_path "$_arg_name")";
 else
 	echo "Server $_arg_name not found";

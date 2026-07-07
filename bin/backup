@@ -1,0 +1,295 @@
+#!/bin/bash
+
+# @parseArger-begin
+# @parseArger-help "backup and restore configuration" --option "help" --short-option "h"
+# @parseArger-version "0.3.1" --option "version" --short-option "v"
+# @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
+# @parseArger-source $SSHM0_ROOT_DIR/bin/utils
+source "$SSHM0_ROOT_DIR/bin/utils";
+# @parseArger-declarations
+# @parseArger opt output "custom output path for backup file" --short o
+# @parseArger opt restore "path to backup file to restore from"
+# @parseArger flag yes "skip confirmation prompt for restore" --short y
+# @parseArger-declarations-end
+
+# @parseArger-utils
+_helpHasBeenPrinted=1;
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)";
+# @parseArger-utils-end
+
+# @parseArger-parsing
+
+__cli_arg_count=$#;
+
+die()
+{
+	local _ret=1
+    if [[ -n "$2" ]] && [[ "$2" =~ ^[0-9]+$ ]]; then
+   	_ret="$2"
+    fi
+	test "${_PRINT_HELP:-no}" = yes && print_help >&2
+	log "$1" -3 >&2
+	exit "${_ret}"
+}
+
+
+begins_with_short_option()
+{
+	local first_option all_short_options='oy'
+	first_option="${1:0:1}"
+	test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
+}
+
+# POSITIONALS ARGUMENTS
+_positionals=();
+_optional_positionals=();
+# OPTIONALS ARGUMENTS
+_arg_output=
+_arg_restore=
+# FLAGS
+_arg_yes="off"
+# NESTED
+_verbose_level="0";
+
+
+
+print_help()
+{
+	_triggerSCHelp=1;
+
+	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
+		_helpHasBeenPrinted=0;
+		echo -e "backup and restore configuration:"
+	echo -e "	-o, --output <output>: custom output path for backup file"
+	echo -e "	--restore <restore>: path to backup file to restore from"
+	echo -e "	-y|--yes|--no-yes: skip confirmation prompt for restore"
+	echo -e "Usage :
+	$0 [--output <value>] [--restore <value>] [--[no-]yes]";
+	fi
+
+}
+
+log() {
+	local _arg_msg="${1}";
+	local _arg_level="${2:-0}";
+	if [ "${_arg_level}" -le "${_verbose_level}" ]; then
+		case "$_arg_level" in
+			-3)
+				_arg_COLOR="\033[0;31m";
+				;;
+			-2)
+				_arg_COLOR="\033[0;33m";
+				;;
+			-1)
+				_arg_COLOR="\033[1;33m";
+				;;
+			1)
+				_arg_COLOR="\033[0;32m";
+				;;
+			2)
+				_arg_COLOR="\033[1;36m";
+				;;
+			3)
+				_arg_COLOR="\033[0;36m";
+				;;
+			*)
+				_arg_COLOR="\033[0m";
+				;;
+		esac
+		echo -e "${_arg_COLOR}${_arg_msg}\033[0m";
+	fi
+}
+
+parse_commandline()
+{
+	_positionals_count=0
+	while test $# -gt 0
+	do
+		_key="$1"
+		case "$_key" in
+			-o|--output)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_output="$2"
+				shift
+				;;
+			--output=*)
+				_arg_output="${_key##--output=}"
+				;;
+			-o*)
+				_arg_output="${_key##-o}"
+				;;
+			
+			--restore)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_restore="$2"
+				shift
+				;;
+			--restore=*)
+				_arg_restore="${_key##--restore=}"
+				;;
+			
+			-y|--yes)
+				_arg_yes="on"
+				;;
+			--no-yes)
+				_arg_yes="off"
+				;;
+			-h|--help)
+				print_help;
+				exit 0;
+				;;
+			-h*)
+				print_help;
+				exit 0;
+				;;
+			-v|--version)
+				print_version;
+				exit 0;
+				;;
+			-v*)
+				print_version;
+				exit 0;
+				;;
+			--verbose)
+					if [ $# -lt 2 ];then
+						_verbose_level="$((_verbose_level + 1))";
+					else
+						_verbose_level="$2";
+						shift;
+					fi
+					;;
+				--quiet)
+					if [ $# -lt 2 ];then
+						_verbose_level="$((_verbose_level - 1))";
+					else
+						_verbose_level="-$2";
+						shift;
+					fi
+					;;
+				
+				*)
+				_last_positional="$1"
+				_positionals+=("$_last_positional")
+				_positionals_count=$((_positionals_count + 1))
+				;;
+		esac
+		shift
+	done
+}
+
+
+handle_passed_args_count()
+{
+	local _required_args_string=""
+	if [ "${_positionals_count}" -gt 0 ] && [ "$_helpHasBeenPrinted" == "1" ];then
+		_PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect 0, but got ${_positionals_count} (the last one was: '${_last_positional}').\n\t${_positionals[*]}" 1
+	fi
+}
+
+
+assign_positional_args()
+{
+	local _positional_name _shift_for=$1;
+	_positional_names=""
+	shift "$_shift_for"
+	for _positional_name in ${_positional_names};do
+		test $# -gt 0 || break;
+		eval "if [ \"\$_one_of${_positional_name}\" != \"\" ];then [[ \"\${_one_of${_positional_name}[*]}\" =~ \"\${1}\" ]];fi" || die "${_positional_name} must be one of: $(eval "echo \"\${_one_of${_positional_name}[*]}\"")" 1;
+		eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an ParseArger bug." 1;
+		shift;
+	done
+}
+
+print_debug()
+{
+	print_help
+	# shellcheck disable=SC2145
+	echo "DEBUG: $0 $@";
+	
+	echo -e "	output: ${_arg_output}";
+	echo -e "	restore: ${_arg_restore}";
+	echo -e "	yes: ${_arg_yes}";
+
+}
+
+
+print_version()
+{
+	echo "0.3.1";
+}
+
+
+on_interrupt() {
+	die Process aborted! 130;
+}
+
+
+parse_commandline "$@";
+handle_passed_args_count;
+assign_positional_args 1 "${_positionals[@]}";
+trap on_interrupt INT;
+
+
+
+# @parseArger-parsing-end
+# print_debug "$@"
+# @parseArger-end
+
+if [ -n "$_arg_restore" ]; then
+	if [ ! -f "$_arg_restore" ]; then
+		die "Backup file not found: $_arg_restore" 1
+	fi
+	if [[ "$_arg_restore" != *.tar.gz ]]; then
+		die "Backup file must be a .tar.gz file: $_arg_restore" 1
+	fi
+	if [ "$_arg_yes" != "on" ]; then
+		read -rp "This will overwrite current config. Continue? [y/N] " _confirm
+		if [ "$_confirm" != "y" ] && [ "$_confirm" != "Y" ]; then
+			echo "Aborted."
+			exit 0
+		fi
+	fi
+	_config_basename="$(basename "$SSHM0_CONFIG_DIR")"
+	_tar_list="$(tar -tzf "$_arg_restore")"
+	_tar_status=$?
+	if [ "$_tar_status" -ne 0 ]; then
+		die "Failed to inspect backup archive $_arg_restore (exit $_tar_status)" 1
+	fi
+	while IFS= read -r _member; do
+		[ -z "$_member" ] && continue
+		case "$_member" in
+			/*|*/../*|../*|*/..|..)
+				die "Unsafe backup archive member: $_member" 1
+				;;
+		esac
+		case "$_member" in
+			"$_config_basename"|"$_config_basename"/*)
+				;;
+			*)
+				die "Unexpected backup archive member: $_member" 1
+				;;
+		esac
+	done <<< "$_tar_list"
+	tar -xzf "$_arg_restore" -C "$(dirname "$SSHM0_CONFIG_DIR")"
+	_tar_status=$?
+	if [ "$_tar_status" -ne 0 ]; then
+		die "Failed to restore from $_arg_restore (exit $_tar_status)" 1
+	fi
+	log "Restored from: $_arg_restore" 1
+else
+	_backup_dir="$SSHM0_CONFIG_DIR/backups"
+	if [ ! -d "$_backup_dir" ]; then
+		mkdir -p "$_backup_dir"
+	fi
+	if [ -n "$_arg_output" ]; then
+		_output="$_arg_output"
+	else
+		_output="$_backup_dir/sshm0-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
+	fi
+	tar -czf "$_output" -C "$(dirname "$SSHM0_CONFIG_DIR")" "$(basename "$SSHM0_CONFIG_DIR")"
+	_tar_status=$?
+	if [ "$_tar_status" -ne 0 ]; then
+		die "Failed to create backup $_output (exit $_tar_status)" 1
+	fi
+	log "Backup created: $_output" 1
+fi

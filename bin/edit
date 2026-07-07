@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # @parseArger-begin
-# @parseArger-help "add a server" --option "help" --short-option "h"
+# @parseArger-help "edit a server" --option "help" --short-option "h"
 # @parseArger-version "0.3.1" --option "version" --short-option "v"
 # @parseArger-verbose --option "verbose" --level "0" --quiet-option "quiet"
 # @parseArger-source $SSHM0_ROOT_DIR/bin/utils
@@ -16,6 +16,8 @@ source "$SSHM0_ROOT_DIR/bin/utils";
 # @parseArger opt port "ssh port"
 # @parseArger flag connect "connect to server" --short c
 # @parseArger opt tag "comma-separated tags" --short t
+# @parseArger opt proxy "proxy jump server name" --short J
+# @parseArger opt timeout "connection timeout in seconds"
 # @parseArger-declarations-end
 
 # @parseArger-utils
@@ -59,6 +61,9 @@ _arg_auth=
 _one_of_arg_auth=("" "key" "password" );
 _arg_port=
 _arg_tag=
+_arg_group=
+_arg_proxy=
+_arg_timeout=
 # FLAGS
 _arg_connect="off"
 # NESTED
@@ -72,7 +77,7 @@ print_help()
 
 	if [[ "$_helpHasBeenPrinted" == "1" ]]; then
 		_helpHasBeenPrinted=0;
-		echo -e "add a server:"
+		echo -e "edit a server:"
 	echo -e "	name: server name"
 	echo -e "	--ip <ip>: ip address"
 	echo -e "	--user <user>: username"
@@ -82,8 +87,11 @@ print_help()
 	echo -e "	--port <port>: ssh port"
 	echo -e "	-c|--connect|--no-connect: connect to server"
 	echo -e "	-t, --tag <tag>: comma-separated tags"
+	echo -e "	-J, --proxy <proxy>: proxy jump server name"
+	echo -e "	--timeout <timeout>: connection timeout in seconds"
+	echo -e "	-g, --group <group>: server group"
 	echo -e "Usage :
-	$0 <name> [--ip <value>] [--user <value>] [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--tag <value>] [--[no-]connect]";
+	$0 <name> [--ip <value>] [--user <value>] [--password <value>] [--key <value>] [--auth <value>] [--port <value>] [--tag <value>] [--group <value>] [--proxy <value>] [--timeout <value>] [--[no-]connect]";
 	fi
 
 }
@@ -200,6 +208,39 @@ parse_commandline()
 				_arg_tag="${_key##-t}"
 				;;
 			
+			--timeout)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_timeout="$2"
+				shift
+				;;
+			--timeout=*)
+				_arg_timeout="${_key##--timeout=}"
+				;;
+			
+			-g|--group)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_group="$2"
+				shift
+				;;
+			--group=*)
+				_arg_group="${_key##--group=}"
+				;;
+			-g*)
+				_arg_group="${_key##-g}"
+				;;
+			
+			-J|--proxy)
+				test $# -lt 2 && die "Missing value for the option: '$_key'" 1
+				_arg_proxy="$2"
+				shift
+				;;
+			--proxy=*)
+				_arg_proxy="${_key##--proxy=}"
+				;;
+			-J*)
+				_arg_proxy="${_key##-J}"
+				;;
+			
 			-c|--connect)
 				_arg_connect="on"
 				;;
@@ -291,6 +332,9 @@ print_debug()
 	echo -e "	port: ${_arg_port}";
 	echo -e "	connect: ${_arg_connect}";
 	echo -e "	tag: ${_arg_tag}";
+	echo -e "	timeout: ${_arg_timeout}";
+	echo -e "	group: ${_arg_group}";
+	echo -e "	proxy: ${_arg_proxy}";
 
 }
 
@@ -320,7 +364,7 @@ trap on_interrupt INT;
 
 if sshm0_load_server "$_arg_name"; then
 #shellcheck source=../server.dist
-	if [ -z "$_arg_ip" ] && [ -z "$_arg_user" ] && [ -z "$_arg_password" ] && [ -z "$_arg_key" ] && [ -z "$_arg_auth" ] && [ -z "$_arg_port" ] && [ -z "$_arg_tag" ]; then
+	if [ -z "$_arg_ip" ] && [ -z "$_arg_user" ] && [ -z "$_arg_password" ] && [ -z "$_arg_key" ] && [ -z "$_arg_auth" ] && [ -z "$_arg_port" ] && [ -z "$_arg_tag" ] && [ -z "$_arg_group" ] && [ -z "$_arg_proxy" ] && [ -z "$_arg_timeout" ]; then
 		echo "Editing server: $_arg_name (current values in brackets)"
 		read -rp "IP address [$sshm0_server_ip]: " _arg_ip
 		_arg_ip="${_arg_ip:-$sshm0_server_ip}"
@@ -339,46 +383,89 @@ if sshm0_load_server "$_arg_name"; then
 		read -rp "Tags (comma-separated) [$(IFS=,; echo "${sshm0_server_tags[*]}")]: " _arg_tag
 		_current_tags="$(IFS=,; echo "${sshm0_server_tags[*]}")"
 		_arg_tag="${_arg_tag:-$_current_tags}"
+		read -rp "Group [$sshm0_server_group]: " _arg_group
+		_arg_group="${_arg_group:-$sshm0_server_group}"
+		read -rp "Proxy server [${sshm0_server_proxy:-none}]: " _arg_proxy
+		_arg_proxy="${_arg_proxy:-$sshm0_server_proxy}"
+		read -rp "Timeout in seconds [${sshm0_server_timeout:-10}]: " _arg_timeout
+		_arg_timeout="${_arg_timeout:-${sshm0_server_timeout:-10}}"
 		echo ""
 	fi
-	if [ "$_arg_ip" != "" ]; then
-		sshm0_server_ip="$_arg_ip"
-	fi
-	
-	if [ "$_arg_user" != "" ]; then
-		sshm0_server_user="$_arg_user"
+	# Resolve final field values: supplied arg overrides existing value.
+	# IMPORTANT: edit writes the config in place (mirroring add's %q serialization)
+	# rather than round-tripping through add, so that:
+	#   - the stored (encrypted) password is never re-encrypted (which would break auth),
+	#   - fields add has no options for (cd, exec_before) are preserved.
+	if [ -n "$_arg_ip" ]; then sshm0_server_ip="$_arg_ip"; fi
+	if [ -n "$_arg_user" ]; then sshm0_server_user="$_arg_user"; fi
+	_final_port="${_arg_port:-$sshm0_server_port}"
+	_final_auth="${_arg_auth:-$sshm0_server_auth}"
+	_final_key="${_arg_key:-$sshm0_server_key}"
+	_final_timeout="${_arg_timeout:-${sshm0_server_timeout:-10}}"
+
+	# Password: re-encrypt ONLY when a new password was supplied; otherwise keep the
+	# existing ciphertext verbatim so it decrypts correctly later.
+	if [ -n "$_arg_password" ]; then
+		_final_password="$(sshm0_encrypt_password "$_arg_password")"
+	else
+		_final_password="$sshm0_server_password"
 	fi
 
-	edArg=("--force" "$_arg_name" "$sshm0_server_ip" "$sshm0_server_user");
-	
-	if [ "$_arg_port" != "" ]; then
-		edArg+=("--port" "$_arg_port")
-	elif [ "$sshm0_server_port" != "" ]; then
-		edArg+=("--port" "$sshm0_server_port")
+	# Tags: --tag replaces the whole set when supplied; otherwise keep existing.
+	if [ -n "$_arg_tag" ]; then
+		sshm0_server_tags=()
+		IFS=',' read -ra _tag_parts <<< "$_arg_tag"
+		for _tp in "${_tag_parts[@]}"; do
+			_tp="${_tp# }"; _tp="${_tp% }"
+			[ -z "$_tp" ] && continue
+			sshm0_server_tags+=("$_tp")
+		done
 	fi
-	if [ "$_arg_auth" != "" ]; then
-		edArg+=("--auth" "$_arg_auth")
-	elif [ "$sshm0_server_auth" != "" ]; then
-		edArg+=("--auth" "$sshm0_server_auth")
-	fi
-	if [ "$_arg_password" != "" ]; then
-		edArg+=("--password" "$_arg_password")
-	elif [ "$sshm0_server_password" != "" ]; then
-		edArg+=("--password" "$sshm0_server_password")
-	fi
-	if [ "$_arg_key" != "" ]; then
-		edArg+=("--key" "$_arg_key")
-	elif [ "$sshm0_server_key" != "" ]; then
-		edArg+=("--key" "$sshm0_server_key")
-	fi
-	if [ "$_arg_tag" != "" ]; then
-		edArg+=("--tag" "$_arg_tag")
-	fi
+	if [ -n "$_arg_group" ]; then sshm0_server_group="$_arg_group"; fi
+	if [ -n "$_arg_proxy" ]; then sshm0_server_proxy="$_arg_proxy"; fi
+
+	sshm0_validate_server "$sshm0_server_ip" "$_final_port" "$sshm0_server_user" "$_final_auth" "$_final_key" "$_final_timeout" || exit 1
+
+	# Serialize the config using the same %q escaping as `add`, preserving every field.
+	_cfgpath="$(sshm0_server_config_path "$_arg_name")" || exit 1
+	_tmpcfg="$(mktemp)" || die "Failed to create temp file" 1
+	{
+		printf '# sshm0 server config\n'
+		printf 'sshm0_server_ip=%s\n'      "$(printf '%q' "$sshm0_server_ip")"
+		printf 'sshm0_server_user=%s\n'    "$(printf '%q' "$sshm0_server_user")"
+		printf 'sshm0_server_port=%s\n'    "$(printf '%q' "$_final_port")"
+		printf 'sshm0_server_auth=%s\n'    "$(printf '%q' "$_final_auth")"
+		printf 'sshm0_server_password=%s\n' "$(printf '%q' "$_final_password")"
+		printf 'sshm0_server_key=%s\n'     "$(printf '%q' "$_final_key")"
+		printf 'sshm0_server_timeout=%s\n' "$(printf '%q' "$_final_timeout")"
+		# cd is preserved from the loaded server (add has no option for it)
+		printf 'sshm0_server_cd=%s\n' "$(printf '%q' "$sshm0_server_cd")"
+		# exec_before and tags are arrays; serialize each element with %q inside ( ... ).
+		# Both are preserved from the loaded server unless a flag overrides tags.
+		if [ "${#sshm0_server_exec_before[@]}" -gt 0 ]; then
+			printf 'sshm0_server_exec_before=('
+			for _eb in "${sshm0_server_exec_before[@]}"; do printf '%q ' "$_eb"; done
+			printf ')\n'
+		else
+			printf 'sshm0_server_exec_before=()\n'
+		fi
+		if [ "${#sshm0_server_tags[@]}" -gt 0 ]; then
+			printf 'sshm0_server_tags=('
+			for _t in "${sshm0_server_tags[@]}"; do printf '%q ' "$_t"; done
+			printf ')\n'
+		else
+			printf 'sshm0_server_tags=()\n'
+		fi
+		printf 'sshm0_server_group=%s\n' "$(printf '%q' "$sshm0_server_group")"
+		printf 'sshm0_server_proxy=%s\n' "$(printf '%q' "$sshm0_server_proxy")"
+	} > "$_tmpcfg" || { rm -f "$_tmpcfg"; die "Failed to write server config" 1; }
+	chmod 600 "$_tmpcfg" || { rm -f "$_tmpcfg"; die "Failed to chmod server config" 1; }
+	mv "$_tmpcfg" "$_cfgpath" || { rm -f "$_tmpcfg"; die "Failed to save server config" 1; }
+	log "Updated server $_arg_name" 1
+
 	if [ "$_arg_connect" != "off" ]; then
-		edArg+=("--connect")
+		"$_SCRIPT_DIR/../sshm0" connect "$_arg_name";
 	fi
-
-  "$SSHM0_ROOT_DIR/bin/add" "${edArg[@]}"
 else
   die "Server '$_arg_name' not found." 1;
 fi

@@ -244,7 +244,8 @@ trap _on_interrupt INT TERM HUP;
 
 #shellcheck source=../server.dist
 if sshm0_load_server "$_arg_name"; then
-  coarg=("${sshm0_server_user}@${sshm0_server_ip}" "-p" "${sshm0_server_port}");
+  sshm0_server_password=$(sshm0_decrypt_password "$sshm0_server_password")
+  coarg=("${sshm0_server_user}@${sshm0_server_ip}" "-p" "${sshm0_server_port}" "-o" "ConnectTimeout=${sshm0_server_timeout:-10}");
 	
 	log "Connecting to $_arg_name :
 	${sshm0_server_user}@${sshm0_server_ip}:${sshm0_server_port}" 2;
@@ -254,6 +255,12 @@ if sshm0_load_server "$_arg_name"; then
 
     coarg+=("-i" "$sshm0_server_key");
   fi
+
+	_proxy_jump="$(sshm0_get_proxy_args "$_arg_name")"
+	if [ -n "$_proxy_jump" ]; then
+		log "Using ProxyJump: $_proxy_jump" 2;
+		coarg+=("-o" "ProxyJump=$_proxy_jump")
+	fi
 
 	ecmd="";
   if [ "$_arg_cd" != "" ] || [ "$sshm0_server_cd" != "" ] || [ "${#_arg_exec_before[@]}" -gt 0 ]; then
@@ -311,13 +318,13 @@ if sshm0_load_server "$_arg_name"; then
 		export DISPLAY="YOURDOINGITWRONG";
   fi
 
+  sshm0_record_connection "$_arg_name"
   setsid ssh "${coarg[@]}" "$ecmd";
-  
+   
 	if [ -n "$_tmpps" ] && [ -f "$_tmpps" ]; then
 		rm -f "$_tmpps"
 	fi
 	unset SSH_PASSWORD SSH_ASKPASS DISPLAY;
-	sshm0_record_connection "$_arg_name"
 else
   die "Server '$_arg_name' not found." 1;
 fi
